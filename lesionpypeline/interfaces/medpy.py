@@ -16,8 +16,3 @@ class MedpyResampleTask(base.CommandLine):
     input_spec = MedpyResampleInputSpec
     output_spec = MedpyResampleOutputSpec
     cmd = "medpy_resample.py"
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_file'] = os.path.abspath(self.inputs.out_file)
-        return outputs
