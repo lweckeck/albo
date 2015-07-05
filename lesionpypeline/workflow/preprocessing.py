@@ -8,134 +8,136 @@ import nipype.interfaces.fsl as fsl
 import lesionpypeline.interfaces.medpy as medpy
 import lesionpypeline.interfaces.utility as util
 
-class WorkflowStep(pe.Workflow):
-    """TODO"""
-    def __init__(self, name):
-        super(WorkflowStep, self).__init__(name=name)
-        self._in = pe.Node(interface=nutil.IdentityInterface(fields=['sequences']), name=name+'_in')
-        self._out = pe.Node(interface=nutil.IdentityInterface(fields=['sequences']), name=name+'_out')
+class Subflow(pe.Workflow):
+    """Extends Nipypes workflow class by adding input and output nodes."""
+    def __init__(self, name, sequences):
+        super(Subflow, self).__init__(name=name)
+        self._sequences = list(sequences)
+        self._inputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.sequences), name=name+'_inputnode')
+        self._outputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.sequences), name=name+'_outputnode')
 
     @property
-    def in(self):
-        return self._in
+    def inputnode(self):
+        return self._inputnode
 
     @property
-    def out(self):
-        return self._out
+    def outputnode(self):
+        return self._outputnode
 
-class ResamplingStep(WorkflowStep):
-    """TODO"""
-    def __init__(self, name, resampling_base_index):
-        super(ResamplingStep, self).__init__(name=name)
-        
-        baseselector = pe.Node(interface=util.Tee(index=resampling_base_index), name=name+'_baseselector')
+    @property
+    def sequences(self):
+        return self._sequences
+    
+def assemble_datagrabber_subflow(cases, sequences):
+    subflow = Subflow(name='datagrabber', sequences=sequences)
+    
+    # infosource node allows for execution of whole pipline on multiple cases
+    infosource = pe.Node(interface=nutil.IdentityInterface(fields=['case']), name='infosource')
+    infosource.iterables = ('case', cases)
+    
+    # datasource collects sequence files from case folders
+    datasource = pe.Node(interface=nio.DataGrabber(infields=['case'], outfields=sequences.keys()), name='datasource')
+    datasource.inputs.base_directory = '/home/lwe/Projects/LesionPypeline/00original'
+    datasource.inputs.template = '%s/%s.nii.gz'
+    datasource.inputs.sort_filelist = True
 
-        resample = pe.Node(interface=medpy.MedpyResampleTask(), name=name+'_resample')
-        resample.inputs.spacing = '3,3,3'
-        
-        registration = pe.MapNode(interface=elastix.Registration(), iterfield='moving_image', name=name+'_registration')
+    info = {sequence: [['case', filename]] for (sequence, filename) in sequences.items()}
+    datasource.inputs.template_args = info
+
+    subflow.connect(infosource, 'case', datasource, 'case')
+    for sequence in sequences:
+        subflow.connect(datasource, sequence, subflow.outputnode, sequence)
+
+    return subflow
+
+def assemble_resampling_subflow(sequences, base):
+    subflow = Subflow(name='resampling', sequences=sequences)
+    DWI = 'dwi'
+    ADC = 'adc'
+
+    resample = pe.Node(interface=medpy.MedpyResampleTask(), name='resample')
+    resample.inputs.spacing = '3,3,3'
+    subflow.connect([
+        (subflow.inputnode, resample, [(base, 'in_file')]),
+        (resample, subflow.outputnode, [('out_file', base)]),
+    ])
+    #remove sequence to avoid duplicate processing
+    sequences.remove(base)
+
+    if DWI in sequences and ADC in sequences:
+        # DWI sequence is registered to resampling base as usual
+        registration = pe.Node(interface=elastix.Registration(), name='dwi_registration')
         registration.inputs.parameters = ['/home/lwe/Projects/LesionPypeline/configs/elastix_sequencespace_rigid_cfg.txt']
         registration.inputs.terminal_output = 'none'
 
-        reinsert = pe.Node(interface=util.Insert(index=base_index), name=name+'_reinsert')
-        
-        self.connect([
-            (self.in, baseselector, [('sequences', 'inlist')]),
-            (baseselector, resample, [('selected', 'in_file')]),
-            (baseselector, registration, [('rejected', 'moving_image')]),
+        subflow.connect([
+            (subflow.inputnode, registration, [(DWI, 'moving_image')]),
             (resample, registration, [('out_file', 'fixed_image')]),
-            (resample, reinsert, [('out_file', 'value')]),
-            (registration, reinsert, [('warped_file', 'inlist')]),
-            (reinsert, self.out, [('out', 'sequences')]) ])
+            (registration, subflow.outputnode, [('warped_file', DWI)]),
+        ])
 
-class SkullstrippingStep(WorkflowStep):
-    """TODO"""
-    def __init__(self, name, skullstripping_base_index):
-        super(SkullstrippingStep, self).__init__(name=name)
+        # ADC sequence is instead warped using the transformation matrix from DWI registration
+        transformation = pe.Node(interface=elastix.ApplyWarp(), name='adc_transformation')
+        subflow.connect([
+            (subflow.inputnode, transformation, [(ADC, 'moving_image')]),
+            (registration, transform, [('transform', 'transform_file')]),
+            (transformation, subflow.outputnode, [('warped_file', ADC)]),
+        ])
+        # remove sequences to avoid creating duplicate nodes later
+        sequences.remove(ADC)
+        sequences.remove(DWI)
+            
+    for sequence in sequences:
+        registration = pe.Node(interface=elastix.Registration(), name=sequence+'_registration')
+        registration.inputs.parameters = ['/home/lwe/Projects/LesionPypeline/configs/elastix_sequencespace_rigid_cfg.txt']
+        registration.inputs.terminal_output = 'none'
 
-        baseselector = pe.Node(interface=util.Tee(index=skullstripping_base_index), name=name+'_baseselector')
+        subflow.connect([
+            (subflow.inputnode, registration, [(sequence, 'moving_image')]),
+            (resample, registration, [('out_file', 'fixed_image')]),
+            (registration, subflow.outputnode, [('warped_file', sequence)]),
+        ])
         
-        skullstrip = pe.Node(interface=fsl.BET(), name=name+'_skullstrip')
-        skullstrip.inputs.terminal_output = 'none'
-        skullstrip.inputs.mask = True
-        skullstrip.inputs.robust = True
-        skullstrip.inputs.output_type = 'NIFTI_GZ'
-        # HACK
-        skullstrip.interface._cmd = 'fsl5.0-bet'
+    return subflow
 
-        applymask = pe.MapNode(interface=fsl.ApplyMask(), name=name+'_applymask')
+def assemble_skullstripping_subflow(sequences, base):
+    subflow = Subflow(name='skullstripping', sequences=sequences)
+
+    skullstrip = pe.Node(interface=fsl.BET(), name='skullstrip')
+    skullstrip.inputs.terminal_output = 'none'
+    skullstrip.inputs.mask = True
+    skullstrip.inputs.robust = True
+    skullstrip.inputs.output_type = 'NIFTI_GZ'
+    # HACK
+    skullstrip.interface._cmd = 'fsl5.0-bet'
+
+    subflow.connect([
+        (subflow.inputnode, skullstrip, [(base, 'in_file')]),
+        (skullstrip, subflow.outputnode, [('out_file', base)]),
+    ])
+
+    sequences.remove(base)
+    for sequence in sequences:
+        applymask = pe.Node(interface=fsl.ApplyMask(), name=sequence+'_applymask')
         applymask.inputs.terminal_output = 'none'
         # HACK
         applymask.interface._cmd = 'fsl5.0-fslmaths'
-
-        reinsert = pe.Node(interface=util.Insert(index=base_index), name=name+'_reinsert')
-
-        self.connect([
-            (self.in, baseselector, [('sequences', 'inlist')]),
-            (baseselector, skullstrip, [('selected', 'in_file')]),
-            (baseselector, applymask, [('rejected', 'in_file')]),
+        subflow.connect([
+            (subflow.inputnode, applymask, [(sequence, 'in_file')]),
             (skullstrip, applymask, [('mask_file', 'mask_file')]),
-            (skullstrip, reinsert, [('out_file', 'value')]),
-            (applymask, reinsert, [('out_file', 'inlist')]),
-            (reinsert, self.out, [('out', 'sequences')]) ])
+            (applymask, subflow.outputnode, [('out_file', sequence)]),
+        ])
         
-class PreprocessingWorkflow(pe.Workflow):
-    """TODO"""
-    def __init__(self, name, sequences, registrationbase, skullstrippingbase):
-        """"""
-        super(PreprocessingWorkflow, self).__init__(name=name)
+    return subflow
 
-        self.in = pe.Node(interface=nutil.IdentityInterface(fields=sequences), name='in')
-        self.out = pe.Node(interface=nutil.IdentityInterface(fields=sequences), name='out')
-        #TODO resolve name conflict parameters - variables
-        self.registrationbase = pe.Node(interface=nutil.IdentityInterface(fields=['base']), name='registrationbase')
-        self.skullstrippingbase = pe.Node(interface=nutil.IdentityInterface(fields=['base']), name='skullstrippingbase')
+def assemble_biasfield_correction_subflow(sequences):
+    pass
 
-        for sequence in sequences:
-            # Step 1: Resampling / Registraition / (Transformation)
-            if sequence == registrationbase:
-                resample = pe.Node(interface=medpy.MedpyResampleTask(), name=sequence+'_resample')
-                resample.inputs.output_file = 'out.nii.gz'
-                resample.inputs.spacing = '3,3,3'
-                self.connect([(self.in, resample, [(sequence, 'input_file')]),
-                              (resample, self.registrationbase, [('output_file', 'base')]),
-                              ])
-                prevnode, prevport = resample, 'output_file'
-            else:
-                registration = pe.Node(interface=elastix.Registration(), name=sequence+'_registration')
-                registration.inputs.parameters = ['/home/lwe/Projects/LesionPypeline/configs/elastix_sequencespace_rigid_cfg.txt']
-                registration.inputs.terminal_output = 'none'
-                self.connect([
-                    (self.in, registration, [(sequence, 'moving_image')]),
-                    (self.registrationbase, registration, [('base', 'fixed_image')]),
-                    ])
-                prevnode, prevport = registration, 'warped_file'
+def assemble_intensityrange_standardization_subflow(sequences):
+    pass
 
-            # Step 2: Skullstripping
-            if sequence == skullstrippingbase:
-                skullstrip = pe.Node(interface=fsl.BET(), name=sequence+'_skullstrip')
-                skullstrip.inputs.terminal_output = 'none'
-                skullstrip.inputs.mask = True
-                skullstrip.inputs.robust = True
-                skullstrip.inputs.output_type = 'NIFTI_GZ'
-                # HACK
-                skullstrip.interface._cmd = 'fsl5.0-bet'
-                self.connect([
-                    (prevnode, skullstrip, [(prevport, 'in_file')]),
-                    (skullstrip, self.skullstrippingbase, [('mask_file', 'base')]),
-                    ])
-                prevnode, prevport = skullstrip, 'out_file'
-            else:
-                applymask = pe.Node(interface=fsl.ApplyMask(), name=sequence+'_applymask')
-                applymask.inputs.terminal_output = 'none'
-                # HACK
-                applymask.interface._cmd = 'fsl5.0-fslmaths'
-                self.connect([
-                    (prevnode, applymask, [(prevport, 'in_file')]),
-                    (self.skullstrippingbase, applymask, [('base', 'mask_file')]),
-                    ])
-                prevnode, prevport = applymask, 'out_file'
-            # Final Step: Map to Output
-            self.connect([
-                (prevnode, self.out, [(prevport, sequence)])
-                ])
+def assemble_featureextraction_subflow(sequences):
+    pass
+
+def assemble_classification_subflow(sequences):
+    pass
