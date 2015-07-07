@@ -29,6 +29,7 @@ class Subflow(pe.Workflow):
         return self._sequences
 
 def connect_subflows(workflow, first, second):
+    """Connect common fields of outputnode of first subflow to inputnode of second subflow."""
     outputs = set(first.outputnode.outputs.get().keys())
     inputs = set(second.inputnode.inputs.get().keys())
 
@@ -40,6 +41,7 @@ def connect_subflows(workflow, first, second):
     
     
 def assemble_datagrabber_subflow(cases, sequences):
+    """Assemble datagrabbing subflow that reads files for given sequences from given case directories."""
     subflow = Subflow(name='datagrabber', sequences=sequences)
     
     # infosource node allows for execution of whole pipline on multiple cases
@@ -62,6 +64,7 @@ def assemble_datagrabber_subflow(cases, sequences):
     return subflow
 
 def assemble_resampling_subflow(sequences, base):
+    """Assemble subflow that resamples given base sequence and registers the remaining sequences to base."""
     subflow = Subflow(name='resampling', sequences=sequences)
     DWI = 'dwi'
     ADC = 'adc'
@@ -112,6 +115,7 @@ def assemble_resampling_subflow(sequences, base):
     return subflow
 
 def assemble_skullstripping_subflow(sequences, base):
+    """Assemble subflow that uses FSL BET to skullstrip the base sequence and applies the resulting mask to the remaining sequences."""
     subflow = Subflow(name='skullstripping', sequences=sequences)
 
     skullstrip = pe.Node(interface=fsl.BET(), name='skullstrip')
@@ -139,13 +143,17 @@ def assemble_skullstripping_subflow(sequences, base):
     return subflow
 
 def assemble_biasfield_correction_subflow(sequences):
+    """Assemble biasfield correction subflow that applies medpy biasfield correction to each sequence."""
     pass
 
 def assemble_intensityrange_standardization_subflow(sequences):
+    """Assemble subflow that applies medpy intensityrange standardization to each sequence."""
     pass
 
 def assemble_featureextraction_subflow(sequences):
+    """TODO"""
     pass
 
 def assemble_classification_subflow(sequences):
+    """TODO"""
     pass
