@@ -34,12 +34,10 @@ def connect_subflows(workflow, first, second):
 
     common_fields = outputs & inputs
     connection_list = [(first.outputnode.name+'.'+field, second.inputnode.name+'.'+field) for field in common_fields]
-    if outputs == inputs:
-        workflow.connect([
-            (first, second, connection_list)
-        ])
-    else:
-        raise Exception('Steps do not have matching input/output fields!')
+    workflow.connect([
+        (first, second, connection_list)
+    ])
+    
     
 def assemble_datagrabber_subflow(cases, sequences):
     subflow = Subflow(name='datagrabber', sequences=sequences)
