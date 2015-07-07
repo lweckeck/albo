@@ -108,8 +108,6 @@ def assemble_skullstripping_subflow(sequences, base):
     skullstrip.inputs.mask = True
     skullstrip.inputs.robust = True
     skullstrip.inputs.output_type = 'NIFTI_GZ'
-    # HACK
-    skullstrip.interface._cmd = 'fsl5.0-bet'
 
     subflow.connect([
         (subflow.inputnode, skullstrip, [(base, 'in_file')]),
@@ -120,8 +118,7 @@ def assemble_skullstripping_subflow(sequences, base):
     for sequence in sequences:
         applymask = pe.Node(interface=fsl.ApplyMask(), name=sequence+'_applymask')
         applymask.inputs.terminal_output = 'none'
-        # HACK
-        applymask.interface._cmd = 'fsl5.0-fslmaths'
+
         subflow.connect([
             (subflow.inputnode, applymask, [(sequence, 'in_file')]),
             (skullstrip, applymask, [('mask_file', 'mask_file')]),
