@@ -27,6 +27,19 @@ class Subflow(pe.Workflow):
     @property
     def sequences(self):
         return self._sequences
+
+def connect_subflows(workflow, first, second):
+    outputs = set(first.outputnode.outputs.get().keys())
+    inputs = set(second.inputnode.inputs.get().keys())
+
+    common_fields = outputs & inputs
+    connection_list = [(first.outputnode.name+'.'+field, second.inputnode.name+'.'+field) for field in common_fields]
+    if outputs == inputs:
+        workflow.connect([
+            (first, second, connection_list)
+        ])
+    else:
+        raise Exception('Steps do not have matching input/output fields!')
     
 def assemble_datagrabber_subflow(cases, sequences):
     subflow = Subflow(name='datagrabber', sequences=sequences)
