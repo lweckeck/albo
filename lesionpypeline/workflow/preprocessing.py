@@ -69,7 +69,7 @@ def assemble_resampling_subflow(sequences, base):
     DWI = 'dwi'
     ADC = 'adc'
 
-    resample = pe.Node(interface=medpy.MedpyResampleTask(), name='resample')
+    resample = pe.Node(interface=medpy.MedpyResample(), name='resample')
     resample.inputs.spacing = '3,3,3'
     subflow.connect([
         (subflow.inputnode, resample, [(base, 'in_file')]),
@@ -143,7 +143,7 @@ def assemble_skullstripping_subflow(sequences, base):
     return subflow
 
 def assemble_biasfield_correction_subflow(sequences):
-    """Assemble biasfield correction subflow that applies medpy biasfield correction to each sequence."""
+    """Assemble biasfield correction subflow that applies cmtk biasfield correction to each sequence."""
     pass
 
 def assemble_intensityrange_standardization_subflow(sequences):

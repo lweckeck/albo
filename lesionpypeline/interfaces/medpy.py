@@ -12,7 +12,28 @@ class MedpyResampleInputSpec(base.CommandLineInputSpec):
 class MedpyResampleOutputSpec(base.TraitedSpec):
     out_file = base.File(desc="the output image", exists=True)
 
-class MedpyResampleTask(base.CommandLine):
+class MedpyResample(base.CommandLine):
+    """Provides an interface for the medpy_resample.py script"""
     input_spec = MedpyResampleInputSpec
     output_spec = MedpyResampleOutputSpec
     cmd = "medpy_resample.py"
+
+class MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
+    in_file = base.File(desc="The image to transform", position=-1, exists=True, mandatory=True, argstr="%s")
+    out_file = base.File(desc="Save the transformed images under this location.", hash_files=False, argstr="--save-images %s",
+                         name_source=["in_file"], name_template="%s_irs.nii.gz")
+    mask_file = base.File(desc="A number binary foreground mask. Alternative to supplying a threshold.", exists=True, hash_files=False,
+                          mandatory=True, xor=['threshold'], argstr="--masks %s")
+    threshold = base.traits.Int(desc="All voxel with an intensity > threshold are considered as foreground. Supply either this or a mask for each image.",
+                                mandatory=True, xor=['mask_file'], argstr="--threshold %d")
+    lmodel = base.traits.File(desc="Location of the pickled intensity range model to load. Activated application mode.",
+                              exists=True, hash_files=False, mandatory=True, argstr="--load-model %s")                        
+
+class MedpyIntensityRangeStandardizationOutputSpec(base.TraitedSpec):
+      out_file = base.File(desc="The output image", exists=True)
+
+class MedpyIntensityRangeStandardization(base.CommandLine):
+    """Provides an interface for the medpy_intensity_range_standardization.py script, as of now restricted to the transformation case"""
+    input_spec = MedpyIntensityRangeStandardizationInputSpec
+    output_spec = MedpyIntensityRangeStandardizationOutputSpec
+    cmd = "medpy_intensity_range_standardization.py"
