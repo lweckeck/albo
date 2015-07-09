@@ -10,11 +10,19 @@ import lesionpypeline.interfaces.utility as util
 
 class Subflow(pe.Workflow):
     """Extends Nipypes workflow class by adding input and output nodes."""
-    def __init__(self, name, sequences):
+    def __init__(self, name, in_fields, out_fields):
         super(Subflow, self).__init__(name=name)
-        self._sequences = list(sequences)
-        self._inputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.sequences), name=name+'_inputnode')
-        self._outputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.sequences), name=name+'_outputnode')
+        if in_fields:
+            self._in_fields = list(in_fields)
+            self._inputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.in_fields), name=name+'_inputnode')
+        else:
+            self._in_fields = []
+
+        if out_fields:
+            self._out_fields = list(out_fields)
+            self._outputnode = pe.Node(interface=nutil.IdentityInterface(fields=self.out_fields), name=name+'_outputnode')
+        else:
+            self._out_fields = []
 
     @property
     def inputnode(self):
@@ -25,8 +33,12 @@ class Subflow(pe.Workflow):
         return self._outputnode
 
     @property
-    def sequences(self):
-        return self._sequences
+    def in_fields(self):
+        return self._in_fields
+
+    @property
+    def out_fields(self):
+        return self._out_fields
 
 def connect_subflows(workflow, first, second):
     """Connect common fields of outputnode of first subflow to inputnode of second subflow."""
@@ -42,7 +54,7 @@ def connect_subflows(workflow, first, second):
     
 def assemble_datagrabber_subflow(cases, sequences):
     """Assemble datagrabbing subflow that reads files for given sequences from given case directories."""
-    subflow = Subflow(name='datagrabber', sequences=sequences)
+    subflow = Subflow(name='datagrabber', in_fields=None, out_fields=sequences)
     
     # infosource node allows for execution of whole pipline on multiple cases
     infosource = pe.Node(interface=nutil.IdentityInterface(fields=['case']), name='infosource')
@@ -65,7 +77,7 @@ def assemble_datagrabber_subflow(cases, sequences):
 
 def assemble_resampling_subflow(sequences, base):
     """Assemble subflow that resamples given base sequence and registers the remaining sequences to base."""
-    subflow = Subflow(name='resampling', sequences=sequences)
+    subflow = Subflow(name='resampling', in_fields=sequences, out_fields=sequences)
     DWI = 'dwi'
     ADC = 'adc'
 
@@ -116,7 +128,7 @@ def assemble_resampling_subflow(sequences, base):
 
 def assemble_skullstripping_subflow(sequences, base):
     """Assemble subflow that uses FSL BET to skullstrip the base sequence and applies the resulting mask to the remaining sequences."""
-    subflow = Subflow(name='skullstripping', sequences=sequences)
+    subflow = Subflow(name='skullstripping', in_fields=sequences, out_fields=sequences+['mask'])
 
     skullstrip = pe.Node(interface=fsl.BET(), name='skullstrip')
     skullstrip.inputs.terminal_output = 'none'
@@ -126,7 +138,7 @@ def assemble_skullstripping_subflow(sequences, base):
 
     subflow.connect([
         (subflow.inputnode, skullstrip, [(base, 'in_file')]),
-        (skullstrip, subflow.outputnode, [('out_file', base)]),
+        (skullstrip, subflow.outputnode, [('out_file', base), ('mask_file', 'mask')]),
     ])
 
     sequences.remove(base)
@@ -144,10 +156,14 @@ def assemble_skullstripping_subflow(sequences, base):
 
 def assemble_biasfield_correction_subflow(sequences):
     """Assemble biasfield correction subflow that applies cmtk biasfield correction to each sequence."""
+    #TODO MRBias interface
+    #TODO nifitmodifymetadata.py script
     pass
 
 def assemble_intensityrange_standardization_subflow(sequences):
     """Assemble subflow that applies medpy intensityrange standardization to each sequence."""
+    #TODO medpy interface
+    #TODO condense_outliers.py script
     pass
 
 def assemble_featureextraction_subflow(sequences):
