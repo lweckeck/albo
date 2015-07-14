@@ -2,7 +2,64 @@ import numpy as np
 import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
+import lesionpypeline.utility.fileutil as futil
+import lesionpypeline.utility.niftimodifymetadata as nmmd
+import lesionpypeline.utility.condenseoutliers as cdo
 
+class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
+    in_file = base.File(desc='the image file to modify', exists=True, mandatory=True)
+    tasks = base.traits.ListStr(desc='the changes to make in order of appearance', mandatory=True)
+
+class NiftiModifyMetadataOutputSpec(base.TraitedSpec):
+    out_file = base.File(desc='the modified image', exists=True)
+
+class NiftiModifyMetadata(base.BaseInterface):
+    input_spec = NiftiModifyMetadataInputSpec
+    output_spec = NiftiModifyMetadataOutputSpec
+
+    def _run_interface(self, runtime):
+        image = self.inputs.in_file
+        tasks = self.inputs.tasks
+
+        nmmd.nifti_modifiy_metadata(image, tasks)
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_file'] = self.inputs.in_file
+        return outputs
+
+class CondenseOutliersInputSpec(base.BaseInterfaceInputSpec):
+    in_file = base.File(desc='the image file to threshold', exists=True, mandatory=True)
+    out_file = base.File(desc='the output image location')
+
+class CondenseOutliersOutputSpec(base.TraitedSpec):
+    out_file = base.File(desc='the modified image', exists=True)
+
+class CondenseOutliers(base.BaseInterface):
+    input_spec = CondenseOutliersInputSpec
+    output_spec = CondenseOutliersOutputSpec
+
+    def _run_interface(self, runtime):
+        if not base.isdefined(self.inputs.out_file):
+            self.inputs.out_file = self._gen_filename('out_file')
+            
+        in_file = self.inputs.in_file
+        out_file = self.inputs.out_file
+
+        cdo.condense_outliers(in_file, out_file)
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_file'] = self.inputs.out_file
+        return outputs
+
+    def _gen_filename(self, name):
+        if name == 'out_file':
+            in_file = self.inputs.in_file
+            return futil.append_file_postfix(in_file, '_condensedoutliers')
+    
 class InsertInputSpec(base.BaseInterfaceInputSpec):
     """Input specification for Insert class"""
     value = base.traits.Any(desc='Value to insert into list')
