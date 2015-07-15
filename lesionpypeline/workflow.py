@@ -7,6 +7,7 @@ import nipype.interfaces.elastix as elastix
 import nipype.interfaces.fsl as fsl
 import lesionpypeline.interfaces.medpy as medpy
 import lesionpypeline.interfaces.utility as util
+import lesionpypeline.interfaces.cmtk as cmtk
 
 class Subflow(pe.Workflow):
     """Extends Nipypes workflow class by adding input and output nodes."""
@@ -156,15 +157,38 @@ def assemble_skullstripping_subflow(sequences, base):
 
 def assemble_biasfield_correction_subflow(sequences):
     """Assemble biasfield correction subflow that applies cmtk biasfield correction to each sequence."""
-    #TODO MRBias interface
-    #TODO nifitmodifymetadata.py script
-    pass
+    subflow = Subflow(name='biasfieldcorrection', in_fields=sequences+['mask'], out_fields=sequences)
 
-def assemble_intensityrange_standardization_subflow(sequences):
+    corrections = {sequence: pe.Node(interface=cmtk.MRBias(), name=sequence+'_bfc') for sequence in sequences}
+    metadatamods = {sequence: pe.Node(interface=util.NiftiModifyMetadata(tasks=['qf=aff', 'sf=aff', 'qfc=1', 'sfc=1']),
+                         name=sequence+'_modmetadata') for sequence in sequences}
+
+    for sequence in sequences:
+        subflow.connect([
+            (subflow.inputnode, corrections[sequence], [(sequence, 'in_file')]),
+            (subflow.inputnode, corrections[sequence], [('mask', 'mask_file')]),
+            (corrections[sequence], metadatamods[sequence], [('out_file', 'in_file')]),
+            (metadatamods[sequence], subflow.outputnode, [('out_file', sequence)]),
+        ])
+    return subflow
+
+def assemble_intensityrange_standardization_subflow(sequences, intensity_models):
     """Assemble subflow that applies medpy intensityrange standardization to each sequence."""
-    #TODO medpy interface
-    #TODO condense_outliers.py script
-    pass
+    subflow = Subflow(name='intensityrangestandardization', in_fields=sequences+['mask'], out_fields=sequences)
+
+    standardizations = {sequence: pe.Node(interface=medpy.MedpyIntensityRangeStandardization(lmodel=intensity_models[sequence]),
+                                          name=sequence+'_intensityrangestd') for sequence in sequences}
+    condenses = {sequence: pe.Node(interface=util.CondenseOutliers(), name=sequence+'_condenseoutliers')
+                 for sequence in sequences}
+
+    for sequence in sequences:
+        subflow.connect([
+            (subflow.inputnode, standardizations[sequence], [(sequence, 'in_file')]),
+            (subflow.inputnode, standardizations[sequence], [('mask', 'mask_file')]),
+            (standardizations[sequence], condenses[sequence], [('out_file', 'in_file')]),
+            (condenses[sequence], subflow.outputnode, [('out_file', sequence)]),
+        ])
+    return subflow
 
 def assemble_featureextraction_subflow(sequences):
     """TODO"""
