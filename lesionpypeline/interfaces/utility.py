@@ -5,6 +5,8 @@ import nipype.interfaces.utility as util
 import lesionpypeline.utility.fileutil as futil
 import lesionpypeline.utility.niftimodifymetadata as nmmd
 import lesionpypeline.utility.condenseoutliers as cdo
+import lesionpypeline.utility.extract_features as exf
+import lesionpypeline.utility.apply_rdf as rdf
 
 class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to modify', exists=True, mandatory=True)
@@ -59,7 +61,68 @@ class CondenseOutliers(base.BaseInterface):
         if name == 'out_file':
             in_file = self.inputs.in_file
             return futil.append_file_postfix(in_file, '_condensedoutliers')
+
+class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec):
+    in_dir = base.Directory(desc='Folder with input images', mandatory=True, exists=True)
+    mask_file = base.File(desc='Image mask, features are only extracted where mask has 1 values', mandatory=True, exists=True)
+    out_dir = base.Directory(desc='Target folder to store the extracted features', value='.')
+    config_file = base.File(desc='Configuration file, containing a struct called features_to_extract that follows a special syntax', mandatory=True, exists=True)
     
+class ExtractFeaturesOutputSpec(base.TraitedSpec):
+    out_dir = base.File(desc='Directory containing the extracted features', exists=True)
+    
+class ExtractFeatures(base.BaseInterface):
+    input_spec = ExtractFeaturesInputSpec
+    output_spec = ExtractFEaturesOutputSpec
+
+    def _run_interface(self, runtime):
+        in_dir = self.inputs.in_dir
+        mask_file = self.inputs.mask_file
+        out_dir = self.inputs.out_dir
+        config_file = self.inputs.config_file
+
+        exf.extract_features(in_dir, mask_file, out_dir, config_file)
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_dir'] = os.path.abspath(self.inputs.out_dir)
+        return outputs
+
+class ApplyRdfInputSpec(base.BaseInterfaceInputSpec):
+    forest_file = base.File(desc='the decision forest file', mandatory=True, exists=True)
+    in_dir = base.Directory(desc='the directory holding the feature files', mandatory=True, exists=True)
+    mask_file = base.File(desc='the mask file indicating on which voxels to operate', mandatory=True, exists=True)
+    feature_config_file = base.File(desc='the file containing a struct indicating the features to use', mandatory=True, exists=True)
+    out_file_segmentation = base.File(desc='the target segmentation file', value=os.path.abspath('./SEGMENTATION.out'))
+    out_file_probability = base.File(desc='the target probability file', value=os.path.abspath('./PROBABILITIES.out'))
+
+class ApplyRdfOutputSpec(base.TraitedSpec):
+        out_file_segmentation = base.File(desc='the file containing the resulting segmentation', exists=True)
+    out_file_probability = base.File(desc='the file containing the resulting probabilities', exists=True)
+
+class ApplyRdf(base.BaseInterface):
+    input_spec = ApplyRdfInputSpec
+    output_spec = ApplyRdfOuputSpec
+
+    def _run_interface(self, runtime):
+        rdf.apply_rdf(
+            self.inputs.forest_file,
+            self.inputs.in_dir,
+            self.inputs.mask_file,
+            self.inputs.feature_config_file,
+            self.inputs.out_file_segmentation,
+            self.inputs.out_file_propabilities)
+
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file_segmentation'] = self.inputs.out_file_segmentation
+        outputs['out_file_probabilities'] = self.inputs.out_file_probabilities
+
+        return outputs
+        
 class InsertInputSpec(base.BaseInterfaceInputSpec):
     """Input specification for Insert class"""
     value = base.traits.Any(desc='Value to insert into list')
