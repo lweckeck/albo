@@ -20,7 +20,7 @@ class MedpyResample(base.CommandLine):
 
 class MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
     in_file = base.File(desc='The image to transform', position=-1, exists=True, mandatory=True, argstr='%s')
-    out_dir = base.Directory(desc='Save the transformed images under this location.', value='.', argstr='--save-images %s')
+    out_dir = base.Directory(desc='Save the transformed images under this location.', mandatory=True, argstr='--save-images %s')
     mask_file = base.File(desc='A number binary foreground mask. Alternative to supplying a threshold.', exists=True,
                           mandatory=True, xor=['threshold'], argstr='--masks %s')
     threshold = base.traits.Int(desc='All voxel with an intensity > threshold are considered as foreground. Supply either this or a mask for each image.',

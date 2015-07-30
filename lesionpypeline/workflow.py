@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as nutil
 import nipype.interfaces.io as nio
@@ -176,8 +177,8 @@ def assemble_intensityrange_standardization_subflow(sequences, intensity_models)
     """Assemble subflow that applies medpy intensityrange standardization to each sequence."""
     subflow = Subflow(name='intensityrangestandardization', in_fields=sequences+['mask'], out_fields=sequences)
 
-    standardizations = {sequence: pe.Node(interface=medpy.MedpyIntensityRangeStandardization(lmodel=intensity_models[sequence]),
-                                          name=sequence+'_intensityrangestd') for sequence in sequences}
+    standardizations = {sequence: pe.Node(interface=medpy.MedpyIntensityRangeStandardization(
+        lmodel=intensity_models[sequence], out_dir='.'), name=sequence+'_intensityrangestd') for sequence in sequences}
     condenses = {sequence: pe.Node(interface=util.CondenseOutliers(), name=sequence+'_condenseoutliers')
                  for sequence in sequences}
 
