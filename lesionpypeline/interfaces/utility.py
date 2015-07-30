@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
@@ -62,7 +63,8 @@ class CondenseOutliers(base.BaseInterface):
             return futil.append_file_postfix(in_file, '_condensedoutliers')
 
 class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec):
-    in_dir = base.Directory(desc='Folder with input images', mandatory=True, exists=True)
+    in_dir = base.Directory(desc='Folder with input images', mandatory=True, exists=True, xor=['inlist'])
+    inlist = base.InputMultiPath(desc='list of input images', mandatory=True, exsists=True, xor=['in_dir'])
     mask_file = base.File(desc='Image mask, features are only extracted where mask has 1 values', mandatory=True, exists=True)
     out_dir = base.Directory(desc='Target folder to store the extracted features', value='.')
     config_file = base.File(desc='Configuration file, containing a struct called features_to_extract that follows a special syntax', mandatory=True, exists=True)
@@ -72,13 +74,22 @@ class ExtractFeaturesOutputSpec(base.TraitedSpec):
     
 class ExtractFeatures(base.BaseInterface):
     input_spec = ExtractFeaturesInputSpec
-    output_spec = ExtractFEaturesOutputSpec
+    output_spec = ExtractFeaturesOutputSpec
 
     def _run_interface(self, runtime):
-        in_dir = self.inputs.in_dir
         mask_file = self.inputs.mask_file
         out_dir = self.inputs.out_dir
         config_file = self.inputs.config_file
+
+        if base.isdefined(self.inputs.in_dir):
+            in_dir = self.inputs.in_dir
+        else:
+            path = os.path.abspath('./EXTRACTFEATURES')
+            os.mkdir(path)
+            in_dir = path
+
+            for item in self.inputs.inlist:
+                os.symlink(item, os.path.join(path, item)
 
         exf.extract_features(in_dir, mask_file, out_dir, config_file)
         return runtime
@@ -97,12 +108,12 @@ class ApplyRdfInputSpec(base.BaseInterfaceInputSpec):
     out_file_probability = base.File(desc='the target probability file', value=os.path.abspath('./PROBABILITIES.out'))
 
 class ApplyRdfOutputSpec(base.TraitedSpec):
-        out_file_segmentation = base.File(desc='the file containing the resulting segmentation', exists=True)
+    out_file_segmentation = base.File(desc='the file containing the resulting segmentation', exists=True)
     out_file_probability = base.File(desc='the file containing the resulting probabilities', exists=True)
 
 class ApplyRdf(base.BaseInterface):
     input_spec = ApplyRdfInputSpec
-    output_spec = ApplyRdfOuputSpec
+    output_spec = ApplyRdfOutputSpec
 
     def _run_interface(self, runtime):
         rdf.apply_rdf(
@@ -121,4 +132,5 @@ class ApplyRdf(base.BaseInterface):
         outputs['out_file_probabilities'] = self.inputs.out_file_probabilities
 
         return outputs
-        
+
+    
