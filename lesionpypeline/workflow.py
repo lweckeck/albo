@@ -54,7 +54,7 @@ def connect_subflows(workflow, first, second):
     ])
     
     
-def assemble_datagrabber_subflow(cases, sequences):
+def assemble_datagrabber_subflow(base_dir, cases, sequences):
     """Assemble datagrabbing subflow that reads files for given sequences from given case directories."""
     subflow = Subflow(name='datagrabber', in_fields=None, out_fields=sequences)
     
@@ -64,7 +64,7 @@ def assemble_datagrabber_subflow(cases, sequences):
     
     # datasource collects sequence files from case folders
     datasource = pe.Node(interface=nio.DataGrabber(infields=['case'], outfields=sequences.keys()), name='datasource')
-    datasource.inputs.base_directory = '/home/lwe/Projects/LesionPypeline/00original'
+    datasource.inputs.base_directory = base_dir
     datasource.inputs.template = '%s/%s.nii.gz'
     datasource.inputs.sort_filelist = True
 
