@@ -1,15 +1,5 @@
 #!/usr/bin/python
 
-"""
-Apply an RDF to a case.
-arg1: the decision forest file
-arg2: the case folder holding the feature files
-arg3: the cases mask file
-arg4: file containing a struct identifying the features to use
-arg5: the target segmentation file
-arg6: the target probability file
-"""
-
 import os
 import sys
 import imp
@@ -22,69 +12,59 @@ from scipy.ndimage.measurements import label
 from medpy.io import load, save
 from medpy.features.utilities import join
 
-# constants
-n_jobs = 6
-probability_threshold = 0.5
+import lesionpypeline.utility.extract_features as exf
 
-def apply_rdf(forest_file, case_folder, mask_file, feature_cnf_file, segmentation_file, probability_file):
-	# load features to use and create proper names from them
-	features_to_use = load_feature_names(feature_cnf_file)
+PROBABILITY_THRESHOLD = 0.5
 
-        # loading case features
-	feature_vector = []
+def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segmentation_file, probability_file):
+    """Apply an RDF to a case.
+        
+    Args:
+        forest_file (str): the decision forest file
+        feature_folder (str): the case folder holding the feature files
+        mask_file (str): the cases mask file
+        feature_config_file (str): file containing a struct identifying the features to use
+        segmentation_file (str): the target segmentation file
+        probability_file (str): the target probability file
+    """
 
-	for feature_name in features_to_use:
-		_file = os.path.join(case_folder, '{}.npy'.format(feature_name))
-		if not os.path.isfile(_file):
-			raise Exception('The feature "{}" could not be found in folder "{}". Breaking.'.format(feature_name, case_folder))
-		with open(_file, 'r') as f:
-			feature_vector.append(numpy.load(f))
-	feature_vector = join(*feature_vector)
-	if 1 == feature_vector.ndim:
-		feature_vector = numpy.expand_dims(feature_vector, -1)
+    features = exf.load_feature_config(feature_config_file)
+    feature_filenames = get_feature_filenames(features)
+    
+    # loading case features
+    feature_vector = []
+    for filename in feature_filenames:
+        _file = os.path.join(feature_folder, '{}.npy'.format(filename))
+        if not os.path.isfile(_file):
+            raise Exception('The feature "{}" could not be found in folder "{}".'.format(filename, feature_folder))
+        with open(_file, 'r') as feature_file:
+            feature_vector.append(numpy.load(feature_file))
+            
+    feature_vector = join(*feature_vector)
+    if feature_vector.ndim == 1:
+        feature_vector = numpy.expand_dims(feature_vector, -1)
 
-	# load and apply the decision forest
-	with open(forest_file, 'r') as f:
-		forest = pickle.load(f)
-	probability_results = forest.predict_proba(feature_vector)[:,1]
-	classification_results = probability_results > probability_threshold # equivalent to forest.predict
+    # load and apply the decision forest
+    with open(forest_file, 'r') as f:
+        forest = pickle.load(f)
+        probability_results = forest.predict_proba(feature_vector)[:,1]
+        classification_results = probability_results > PROBABILITY_THRESHOLD # equivalent to forest.predict
 
-	# preparing  image
-	m, h = load(mask_file)
-    	m = m.astype(numpy.bool)
-    	oc = numpy.zeros(m.shape, numpy.uint8)
-	op = numpy.zeros(m.shape, numpy.float32)
-    	oc[m] = numpy.squeeze(classification_results).ravel()
-	op[m] = numpy.squeeze(probability_results).ravel()
+    # prepare result images to save to disk
+    mask, header = load(mask_file)
+    mask = mask.astype(numpy.bool)
+    out_classification = numpy.zeros(mask.shape, numpy.uint8)
+    out_probabilities = numpy.zeros(mask.shape, numpy.float32)
+    out_classification[mask] = numpy.squeeze(classification_results).ravel()
+    out_probabilities[mask] = numpy.squeeze(probability_results).ravel()
 
-	# applying the post-processing morphology
-	oc = binary_fill_holes(oc)
+    # apply the post-processing morphology
+    out_classification = binary_fill_holes(out_classification)
 
-	# saving the results
-    	save(oc, segmentation_file, h, True)
-    	save(op, probability_file, h, True)
+    save(out_classification, segmentation_file, header, True)
+    save(out_probabilities, probability_file, header, True)
 
-def feature_struct_entry_to_name(fstruct):
-	seq, fcall, fargs, _ = fstruct
-	return 'feature.{}.{}.{}'.format(seq, fcall.func_name, '_'.join(['arg{}'.format(i) for i in fargs]))
-	
-def load_feature_struct(f):
-	"Load the feature struct from a feature config file."
-	d, m = os.path.split(os.path.splitext(f)[0])
-	f, filename, desc = imp.find_module(m, [d])
-	return imp.load_module(m, f, filename, desc).features_to_extract
-
-def load_feature_names(f):
-	"Load the feature names from a feature config file."
-	fs = load_feature_struct(f)
-	return [feature_struct_entry_to_name(e) for e in fs]
-
-if __name__ == "__main__":
-	forest_file = sys.argv[1]
-	case_folder = sys.argv[2]
-	mask_file = sys.argv[3]
-	feature_cnf_file = sys.argv[4]
-	segmentation_file = sys.argv[5]
-	probability_file = sys.argv[6]
-
-	apply_rdf(forest_file, case_folder, mask_file, feature_cnf_file, segmentation_file, probability_file)
+def get_feature_filenames(features):
+    for sequence, feature_list in features:
+        for function, kwargs, _ in feature_list:
+            yield exf.generate_feature_filename(sequence, function, kwargs)
