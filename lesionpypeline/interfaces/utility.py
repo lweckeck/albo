@@ -62,9 +62,7 @@ class CondenseOutliers(base.BaseInterface):
             in_file = self.inputs.in_file
             return futil.append_file_postfix(in_file, '_condensedoutliers')
 
-class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec):
-    in_dir = base.Directory(desc='Folder with input images', mandatory=True, exists=True, xor=['inlist'])
-    inlist = base.InputMultiPath(desc='list of input images', mandatory=True, exsists=True, xor=['in_dir'])
+class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec, base.DynamicTraitedSpec):
     mask_file = base.File(desc='Image mask, features are only extracted where mask has 1 values', mandatory=True, exists=True)
     out_dir = base.Directory(desc='Target folder to store the extracted features', value='.')
     config_file = base.File(desc='Configuration file, containing a struct called features_to_extract that follows a special syntax', mandatory=True, exists=True)
@@ -76,22 +74,20 @@ class ExtractFeatures(base.BaseInterface):
     input_spec = ExtractFeaturesInputSpec
     output_spec = ExtractFeaturesOutputSpec
 
+    _sequences = []
+
+    def __init__(self, sequences, **inputs):
+        super(ExtractFeatures, self).__init__(**inputs)
+        self._sequences = sequences
+        nio.add_traits(self.inputs, sequences, base.File)
+            
     def _run_interface(self, runtime):
+        features = exf.load_feature_config(self.inputs.config_file)
+        image_paths = {sequence: self.inputs.get()[sequence] for sequence in self._sequences}
         mask_file = self.inputs.mask_file
         out_dir = self.inputs.out_dir
-        config_file = self.inputs.config_file
 
-        if base.isdefined(self.inputs.in_dir):
-            in_dir = self.inputs.in_dir
-        else:
-            path = os.path.abspath('./EXTRACTFEATURES')
-            os.mkdir(path)
-            in_dir = path
-
-            for item in self.inputs.inlist:
-                os.symlink(item, os.path.join(path, item)
-
-        exf.extract_features(in_dir, mask_file, out_dir, config_file)
+        exf.extract_features(features, image_paths, mask_file, out_dir)
         return runtime
 
     def _list_outputs(self):
@@ -132,5 +128,3 @@ class ApplyRdf(base.BaseInterface):
         outputs['out_file_probabilities'] = self.inputs.out_file_probabilities
 
         return outputs
-
-    
