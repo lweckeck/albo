@@ -95,7 +95,7 @@ def assemble_resampling_subflow(sequences, base):
     if DWI in sequences and ADC in sequences:
         # DWI sequence is registered to resampling base as usual
         registration = pe.Node(interface=elastix.Registration(), name='dwi_registration')
-        registration.inputs.parameters = ['/home/lwe/Projects/LesionPypeline/configs/elastix_sequencespace_rigid_cfg.txt']
+        registration.inputs.parameters = [os.path.abspath('./configs/elastix_sequencespace_rigid_cfg.txt')]
         registration.inputs.terminal_output = 'none'
 
         subflow.connect([
@@ -117,7 +117,7 @@ def assemble_resampling_subflow(sequences, base):
             
     for sequence in sequences:
         registration = pe.Node(interface=elastix.Registration(), name=sequence+'_registration')
-        registration.inputs.parameters = ['/home/lwe/Projects/LesionPypeline/configs/elastix_sequencespace_rigid_cfg.txt']
+        registration.inputs.parameters = [os.path.abspath('./configs/elastix_sequencespace_rigid_cfg.txt')]
         registration.inputs.terminal_output = 'none'
 
         subflow.connect([

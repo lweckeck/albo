@@ -30,7 +30,7 @@ feature_config_file = os.path.abspath('./featureconfig.py')
 # datasink stores output files at given location
 datasink = pe.Node(interface=nio.DataSink(), name='datasink')
 datasink.inputs.container = 'out'
-datasink.inputs.base_directory = '/home/lwe/Projects/LesionPypeline'
+datasink.inputs.base_directory = os.path.abspath('.')
 
 datagrabber = lwf.assemble_datagrabber_subflow(base_dir, cases, sequences)
 resampling = lwf.assemble_resampling_subflow(sequences.keys(), 'flair')
@@ -39,7 +39,7 @@ biasfield = lwf.assemble_biasfield_correction_subflow(sequences.keys())
 intensityrange = lwf.assemble_intensityrange_standardization_subflow(sequences.keys(), intensity_models)
 #featureextraction = lwf.assemble_featureextraction_subflow(sequences.keys(), feature_config_file)
 
-metaflow = pe.Workflow(name='metaflow')
+metaflow = pe.Workflow(name='metaflow', base_dir='.')
 lwf.connect_subflows(metaflow, datagrabber, resampling)
 lwf.connect_subflows(metaflow, resampling, skullstripping)
 lwf.connect_subflows(metaflow, skullstripping, biasfield)
@@ -60,4 +60,4 @@ for sequence in sequences.keys():
 #   (featureextraction, datasink, [(featureextraction.outputnode.name+'.feature_dir', 'feature_dir')])
 #])
 
-metaflow.run()
+#metaflow.run()
