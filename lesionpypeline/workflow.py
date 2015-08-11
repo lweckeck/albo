@@ -195,16 +195,11 @@ def assemble_featureextraction_subflow(sequences, feature_config_file):
     """TODO"""
     subflow = Subflow(name='featureextraction', in_fields=sequences+['mask'], out_fields=['feature_dir'])
 
-    merge = pe.Node(interface=nutil.Merge(len(sequences)), name='merge')
-    extract_features = pe.Node(interface=util.ExtractFeatures(config_file=feature_config_file), name='extract_features')
+    extract_features = pe.Node(interface=util.ExtractFeatures(sequences=sequences, config_file=feature_config_file, out_dir='./'), name='extract_features')
 
-    merge_ports = ['in{}'.format(i) for i in range(len(sequences))]
-    merge_connections = zip(sequences, merge_ports)
-    
     subflow.connect([
-        (subflow.inputnode, merge, merge_connections),
+        (subflow.inputnode, extract_features, zip(sequences, sequences)),
         (subflow.inputnode, extract_features, [('mask', 'mask_file')]),
-        (merge, extract_features, [('out', 'inlist')]),
         (extract_features, subflow.outputnode, [('out_dir', 'feature_dir')]),
     ])
     return subflow
