@@ -63,12 +63,12 @@ def assemble_datagrabber_subflow(base_dir, cases, sequences):
     infosource.iterables = ('case', cases)
     
     # datasource collects sequence files from case folders
-    datasource = pe.Node(interface=nio.DataGrabber(infields=['case'], outfields=sequences.keys()), name='datasource')
+    datasource = pe.Node(interface=nio.DataGrabber(infields=['case'], outfields=sequences), name='datasource')
     datasource.inputs.base_directory = base_dir
     datasource.inputs.template = '%s/%s.nii.gz'
     datasource.inputs.sort_filelist = True
 
-    info = {sequence: [['case', filename]] for (sequence, filename) in sequences.items()}
+    info = {sequence: [['case', sequence]] for sequence in sequences}
     datasource.inputs.template_args = info
 
     subflow.connect(infosource, 'case', datasource, 'case')
