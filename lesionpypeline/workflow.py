@@ -209,6 +209,18 @@ def assemble_featureextraction_subflow(sequences, feature_config_file):
     ])
     return subflow
 
-def assemble_classification_subflow(sequences):
-    """TODO"""
-    pass
+def assemble_classification_subflow(sequences, forest_file, feature_config_file):
+    """TODO"""    
+    subflow = Subflow(name='classification', in_fields=['feature_dir', 'mask'], out_fields=['segmentation_file', 'probabilities_file'])
+
+    apply_rdf = pe.Node(interface=util.ApplyRdf(forest_file=forest_file, feature_config_file=feature_config_file),
+                        name='apply_rdf')
+
+    subflow.connect([
+        (subflow.inputnode, apply_rdf, [('feature_dir', 'in_dir'),
+                                        ('mask', 'mask_file')]),
+        (apply_rdf, subflow.outputnode, [('out_file_segmentation', 'segmentation_file'),
+                                         ('out_file_probabilities', 'probabilities_file')]),
+    ])
+    return subflow
+
