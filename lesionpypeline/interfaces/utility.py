@@ -62,15 +62,15 @@ class CondenseOutliers(base.BaseInterface):
             in_file = self.inputs.in_file
             return futil.append_file_postfix(in_file, '_condensedoutliers')
 
-class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec, base.DynamicTraitedSpec):
+class ExtractFeaturesInputSpec(base.DynamicTraitedSpec):
     mask_file = base.File(desc='Image mask, features are only extracted where mask has 1 values', mandatory=True, exists=True)
-    out_dir = base.Directory(desc='Target folder to store the extracted features', value='.')
+    out_dir = base.Directory(desc='Target folder to store the extracted features')
     config_file = base.File(desc='Configuration file, containing a struct called features_to_extract that follows a special syntax', mandatory=True, exists=True)
     
 class ExtractFeaturesOutputSpec(base.TraitedSpec):
-    out_dir = base.File(desc='Directory containing the extracted features', exists=True)
+    out_dir = base.File(desc='Directory containing the extracted features')
     
-class ExtractFeatures(base.BaseInterface):
+class ExtractFeatures(nio.IOBase):
     input_spec = ExtractFeaturesInputSpec
     output_spec = ExtractFeaturesOutputSpec
 
@@ -78,14 +78,17 @@ class ExtractFeatures(base.BaseInterface):
 
     def __init__(self, sequences, **inputs):
         super(ExtractFeatures, self).__init__(**inputs)
+        
         self._sequences = sequences
+        # use add_class_trait
         nio.add_traits(self.inputs, sequences, base.File)
+        self.inputs.set(**inputs)
             
     def _run_interface(self, runtime):
         features = exf.load_feature_config(self.inputs.config_file)
         image_paths = {sequence: self.inputs.get()[sequence] for sequence in self._sequences}
         mask_file = self.inputs.mask_file
-        out_dir = self.inputs.out_dir
+        out_dir = os.path.abspath(self.inputs.out_dir)
 
         exf.extract_features(features, image_paths, mask_file, out_dir)
         return runtime
@@ -101,11 +104,11 @@ class ApplyRdfInputSpec(base.BaseInterfaceInputSpec):
     mask_file = base.File(desc='the mask file indicating on which voxels to operate', mandatory=True, exists=True)
     feature_config_file = base.File(desc='the file containing a struct indicating the features to use', mandatory=True, exists=True)
     out_file_segmentation = base.File(desc='the target segmentation file', value=os.path.abspath('./SEGMENTATION.out'))
-    out_file_probability = base.File(desc='the target probability file', value=os.path.abspath('./PROBABILITIES.out'))
+    out_file_probabilities = base.File(desc='the target probability file', value=os.path.abspath('./PROBABILITIES.out'))
 
 class ApplyRdfOutputSpec(base.TraitedSpec):
     out_file_segmentation = base.File(desc='the file containing the resulting segmentation', exists=True)
-    out_file_probability = base.File(desc='the file containing the resulting probabilities', exists=True)
+    out_file_probabilities = base.File(desc='the file containing the resulting probabilities', exists=True)
 
 class ApplyRdf(base.BaseInterface):
     input_spec = ApplyRdfInputSpec
@@ -118,7 +121,7 @@ class ApplyRdf(base.BaseInterface):
             self.inputs.mask_file,
             self.inputs.feature_config_file,
             self.inputs.out_file_segmentation,
-            self.inputs.out_file_propabilities)
+            self.inputs.out_file_probabilities)
 
         return runtime
 
