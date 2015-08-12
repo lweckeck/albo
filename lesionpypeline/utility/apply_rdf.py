@@ -5,6 +5,7 @@ import sys
 import imp
 import pickle
 import numpy
+import gzip
 
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from scipy.ndimage.measurements import label
@@ -45,7 +46,7 @@ def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segme
         feature_vector = numpy.expand_dims(feature_vector, -1)
 
     # load and apply the decision forest
-    with open(forest_file, 'r') as f:
+    with gzip.open(forest_file, 'r') as f:
         forest = pickle.load(f)
         probability_results = forest.predict_proba(feature_vector)[:,1]
         classification_results = probability_results > PROBABILITY_THRESHOLD # equivalent to forest.predict
@@ -65,6 +66,6 @@ def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segme
     save(out_probabilities, probability_file, header, True)
 
 def get_feature_filenames(features):
-    for sequence, feature_list in features:
+    for sequence, feature_list in features.items():
         for function, kwargs, _ in feature_list:
             yield exf.generate_feature_filename(sequence, function, kwargs)

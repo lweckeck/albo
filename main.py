@@ -27,7 +27,7 @@ intensity_models = {sequence: os.path.abspath(model_folder+'/intensity_model_'+s
                     for sequence in sequences}
 
 feature_config_file = os.path.abspath('./featureconfig-reduced.py')
-forest_file = os.path.abspath('./101forests/forest.pkl')
+forest_file = os.path.abspath('./101forests/forest.pklz')
 
 # datasink stores output files at given location
 datasink = pe.Node(interface=nio.DataSink(), name='datasink')
