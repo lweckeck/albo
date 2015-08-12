@@ -1,5 +1,5 @@
 import os
-import numpy as np
+import numpy
 import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
 import lesionpypeline.utility.fileutil as futil
@@ -7,6 +7,9 @@ import lesionpypeline.utility.niftimodifymetadata as nmmd
 import lesionpypeline.utility.condenseoutliers as cdo
 import lesionpypeline.utility.extract_features as exf
 import lesionpypeline.utility.apply_rdf as rdf
+
+import medpy.io as mio
+
 
 class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to modify', exists=True, mandatory=True)
@@ -131,3 +134,41 @@ class ApplyRdf(base.BaseInterface):
         outputs['out_file_probabilities'] = self.inputs.out_file_probabilities
 
         return outputs
+
+class ApplyMaskInputSpec(base.BaseInterfaceInputSpec):
+    in_file = base.File(desc='the image file to apply the mask to', exists=True, mandatory=True)
+    mask_file = base.File(desc='the mask file')
+    out_file = base.File(desc='the output image location')
+
+class ApplyMaskOutputSpec(base.TraitedSpec):
+    out_file = base.File(desc='the masked image', exists=True)
+
+class ApplyMask(base.BaseInterface):
+    input_spec = ApplyMaskInputSpec
+    output_spec = ApplyMaskOutputSpec
+
+    def _run_interface(self, runtime):
+        if not base.isdefined(self.inputs.out_file):
+            self.inputs.out_file = self._gen_filename('out_file')
+        
+        in_file = self.inputs.in_file
+        mask_file = self.inputs.mask_file
+        out_file = self.inputs.out_file
+
+        image, header = mio.load(in_file)
+        mask, _ = mio.load(mask_file)
+
+        image[~(mask.astype(numpy.bool))] = 0
+        mio.save(image, out_file, header)
+        
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_file'] = self.inputs.out_file
+        return outputs
+
+    def _gen_filename(self, name):
+        if name == 'out_file':
+            in_file = self.inputs.in_file
+            return futil.append_file_postfix(in_file, '_masked')
