@@ -1,6 +1,0 @@
-numpy
-scipy (prerequisites: apt-get install gcc gfortran python-dev libblas-dev liblapack-dev cython)
-nibabel
-pydicom
-medpy
-nipype
