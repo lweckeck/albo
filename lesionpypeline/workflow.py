@@ -146,7 +146,6 @@ def assemble_skullstripping_subflow(sequences, base):
     sequences.remove(base)
     for sequence in sequences:
         applymask = pe.Node(interface=util.ApplyMask(), name=sequence+'_applymask')
-        applymask.inputs.terminal_output = 'none'
 
         subflow.connect([
             (subflow.inputnode, applymask, [(sequence, 'in_file')]),
