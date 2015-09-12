@@ -26,7 +26,7 @@ model_folder='102intensitymodels'
 intensity_models = {sequence: os.path.abspath(model_folder+'/intensity_model_'+sequence+'.pkl')
                     for sequence in sequences}
 
-feature_config_file = os.path.abspath('./featureconfig-reduced.py')
+feature_config_file = os.path.abspath('./featureconfig.py')
 forest_file = os.path.abspath('./101forests/forest.pklz')
 
 # datasink stores output files at given location

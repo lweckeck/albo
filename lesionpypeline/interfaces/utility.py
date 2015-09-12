@@ -8,7 +8,8 @@ import lesionpypeline.utility.condenseoutliers as cdo
 import lesionpypeline.utility.extract_features as exf
 import lesionpypeline.utility.apply_rdf as rdf
 
-import medpy.io as mio
+# does not work for some reason ("Import error: No module named io"), replaced with exf.mio since import works there
+#import medpy.io as mio
 
 
 class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
@@ -36,7 +37,7 @@ class NiftiModifyMetadata(base.BaseInterface):
 
 class CondenseOutliersInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to threshold', exists=True, mandatory=True)
-    out_file = base.File(desc='the output image location')
+    out_file = base.File(desc='the output image location', genfile=True)
 
 class CondenseOutliersOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the modified image', exists=True)
@@ -106,8 +107,8 @@ class ApplyRdfInputSpec(base.BaseInterfaceInputSpec):
     in_dir = base.Directory(desc='the directory holding the feature files', mandatory=True, exists=True)
     mask_file = base.File(desc='the mask file indicating on which voxels to operate', mandatory=True, exists=True)
     feature_config_file = base.File(desc='the file containing a struct indicating the features to use', mandatory=True, exists=True)
-    out_file_segmentation = base.File(desc='the target segmentation file', value=os.path.abspath('./SEGMENTATION.out'))
-    out_file_probabilities = base.File(desc='the target probability file', value=os.path.abspath('./PROBABILITIES.out'))
+    out_file_segmentation = base.File(desc='the target segmentation file')
+    out_file_probabilities = base.File(desc='the target probability file')
 
 class ApplyRdfOutputSpec(base.TraitedSpec):
     out_file_segmentation = base.File(desc='the file containing the resulting segmentation', exists=True)
@@ -118,6 +119,10 @@ class ApplyRdf(base.BaseInterface):
     output_spec = ApplyRdfOutputSpec
 
     def _run_interface(self, runtime):
+        if not base.isdefined(self.inputs.out_file_segmentation):
+            self.inputs.out_file_segmentation = self._gen_filename('out_file_segmentation')
+        if not base.isdefined(self.inputs.out_file_probabilities):
+            self.inputs.out_file_probabilities = self._gen_filename('out_file_probabilities')
         rdf.apply_rdf(
             self.inputs.forest_file,
             self.inputs.in_dir,
@@ -134,6 +139,14 @@ class ApplyRdf(base.BaseInterface):
         outputs['out_file_probabilities'] = self.inputs.out_file_probabilities
 
         return outputs
+
+    def _gen_filename(self, name):
+        if name == 'out_file_segmentation':
+            outputs = self._outputs().get()
+            return os.path.abspath('./segmentation.nii.gz')
+        elif name == 'out_file_probabilities':
+            outputs = self._outputs().get()
+            return os.path.abspath('./probabilities.nii.gz')
 
 class ApplyMaskInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to apply the mask to', exists=True, mandatory=True)
@@ -155,11 +168,11 @@ class ApplyMask(base.BaseInterface):
         mask_file = self.inputs.mask_file
         out_file = self.inputs.out_file
 
-        image, header = mio.load(in_file)
-        mask, _ = mio.load(mask_file)
+        image, header = exf.mio.load(in_file)
+        mask, _ = exf.mio.load(mask_file)
 
         image[~(mask.astype(numpy.bool))] = 0
-        mio.save(image, out_file, header)
+        exf.mio.save(image, out_file, header)
         
         return runtime
 
