@@ -1,0 +1,16 @@
+* Tasks
+** DONE change absolute paths to relative
+** TODO confirm and fix: broken spacing after biasfield correction
+After biasfield correction, the spacing seems to have reverted from (3,3,3) to the default values
+** DONE replace elastix apply mask with own implementation
+** TODO error handling
+extract_features: handle mismatch between featureconfig and provided image paths
+** TODO rethink handling of sequence-lists as parameters
+sequence-lists are passed by reference, manipulation in assembly function necessiates explicit passing of copy
+** TODO make sure all outputs are reused if present 
+- medpy intensity range standardization: replace out_dir with out_file
+- extract_features: dynamically traited output?
+- apply_rdf: dynamically traited input?
+- merge extract_features and apply_rdf?
+** TODO enhancement: simpler subflows
+Remove input- and outputnodes, instead store "ports" as instance variables. Use custom methods to connect subflows. (Metaflow class necessary?)
