@@ -52,16 +52,16 @@ def connect_subflows(workflow, first, second):
     workflow.connect([
         (first, second, connection_list)
     ])
-    
-    
+
+
 def assemble_datagrabber_subflow(base_dir, cases, sequences):
     """Assemble datagrabbing subflow that reads files for given sequences from given case directories."""
     subflow = Subflow(name='datagrabber', in_fields=None, out_fields=sequences)
-    
+
     # infosource node allows for execution of whole pipline on multiple cases
     infosource = pe.Node(interface=nutil.IdentityInterface(fields=['case']), name='infosource')
     infosource.iterables = ('case', cases)
-    
+
     # datasource collects sequence files from case folders
     datasource = pe.Node(interface=nio.DataGrabber(infields=['case'], outfields=sequences), name='datasource')
     datasource.inputs.base_directory = base_dir
@@ -114,7 +114,7 @@ def assemble_resampling_subflow(sequences, base):
         # remove sequences to avoid creating duplicate nodes later
         sequences.remove(ADC)
         sequences.remove(DWI)
-            
+
     for sequence in sequences:
         registration = pe.Node(interface=elastix.Registration(), name=sequence+'_registration')
         registration.inputs.parameters = [os.path.abspath('./configs/elastix_sequencespace_rigid_cfg.txt')]
@@ -125,7 +125,7 @@ def assemble_resampling_subflow(sequences, base):
             (resample, registration, [('out_file', 'fixed_image')]),
             (registration, subflow.outputnode, [('warped_file', sequence)]),
         ])
-        
+
     return subflow
 
 def assemble_skullstripping_subflow(sequences, base):
@@ -152,7 +152,7 @@ def assemble_skullstripping_subflow(sequences, base):
             (skullstrip, applymask, [('mask_file', 'mask_file')]),
             (applymask, subflow.outputnode, [('out_file', sequence)]),
         ])
-        
+
     return subflow
 
 def assemble_biasfield_correction_subflow(sequences):
@@ -204,7 +204,7 @@ def assemble_featureextraction_subflow(sequences, feature_config_file):
     return subflow
 
 def assemble_classification_subflow(sequences, forest_file, feature_config_file):
-    """TODO"""    
+    """TODO"""
     subflow = Subflow(name='classification', in_fields=['feature_dir', 'mask'], out_fields=['segmentation_file', 'probabilities_file'])
 
     apply_rdf = pe.Node(interface=util.ApplyRdf(forest_file=forest_file, feature_config_file=feature_config_file),
@@ -217,4 +217,3 @@ def assemble_classification_subflow(sequences, forest_file, feature_config_file)
                                          ('out_file_probabilities', 'probabilities_file')]),
     ])
     return subflow
-

@@ -33,7 +33,7 @@ forest_file = os.path.abspath('./101forests/forest.pklz')
 datasink = pe.Node(interface=nio.DataSink(), name='datasink')
 datasink.inputs.container = 'out'
 datasink.inputs.base_directory = os.path.abspath('.')
- 
+
 datagrabber = lwf.assemble_datagrabber_subflow(base_dir, cases, sequences[:])
 resampling = lwf.assemble_resampling_subflow(sequences[:], 'flair_tra')
 skullstripping = lwf.assemble_skullstripping_subflow(sequences[:], 't1_sag_tfe')
@@ -59,7 +59,7 @@ for sequence in sequences:
    metaflow.connect([
       (intensityrange, datasink, [(intensityrange.outputnode.name+'.'+sequence, sequence)]),
    ])
-   
+
 metaflow.connect([
    (applyrdf, datasink, [(applyrdf.outputnode.name+'.segmentation_file', 'segmentation_file')]),
    (applyrdf, datasink, [(applyrdf.outputnode.name+'.probabilities_file', 'probabilities_file')])

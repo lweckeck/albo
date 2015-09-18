@@ -9,7 +9,7 @@
   - medpy
   - nipype
   - sklearn
-
 - cmtk
 - fsl
 - elastix
+
