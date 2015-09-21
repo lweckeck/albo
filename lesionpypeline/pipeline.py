@@ -1,11 +1,16 @@
 
-"""TODO."""
+"""Contains facilities for execution of the lesion detection pipeline.
+
+The class PipelineContext stores contextual information for
+pipeline execution which is read from a config file.
+"""
 
 import os
 import logging
 import copy
 
 import nipype.caching
+
 import nipype.interfaces.elastix
 import nipype.interfaces.fsl
 import lesionpypeline.interfaces.medpy
@@ -20,56 +25,62 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def execute_pipeline(sequences, config):
+def execute_pipeline(sequence_paths, config):
     """Execute the lesion detection pipeline."""
-    sequences = copy.copy(sequences)
+    sequence_paths = copy.copy(sequence_paths)
     context = PipelineContext(config)
 
     # -- Resampling
-    fixed_image_key = context.get_registration_base(sequences)
-    fixed_image = context.resample(sequences[fixed_image_key])
+    fixed_image_key = context.get_registration_base(sequence_paths)
+    fixed_image = context.resample(sequence_paths[fixed_image_key])
 
-    sequences[fixed_image_key] = fixed_image
-    for key in sequences.viewkeys() - {fixed_image_key, ADC, DWI}:
-        sequences[key], _ = context.register(sequences[key], fixed_image)
+    sequence_paths[fixed_image_key] = fixed_image
+    for key in sequence_paths.viewkeys() - {fixed_image_key, ADC, DWI}:
+        sequence_paths[key], _ = context.register(sequence_paths[key],
+                                                  fixed_image)
 
     # special case: adc is not registered to the fixed image. Instead, the
     # transformation resulting from DWI registration is applied.
-    if DWI in sequences:
-        sequences[DWI], transform = context.register(sequences[DWI],
-                                                     fixed_image)
-    if ADC in sequences.keys():
+    if DWI in sequence_paths:
+        sequence_paths[DWI], transform = context.register(sequence_paths[DWI],
+                                                          fixed_image)
+    if ADC in sequence_paths.keys():
         if transform is not None:
-            sequences[ADC] = context.transform(sequences[ADC], transform)
+            sequence_paths[ADC] = context.transform(sequence_paths[ADC],
+                                                    transform)
         else:
-            sequences[ADC] = context.register(sequences[ADC], fixed_image)
+            sequence_paths[ADC] = context.register(sequence_paths[ADC],
+                                                   fixed_image)
 
     # -- Skullstripping
 
-    skullstrip_base_key = context.get_skullstripping_base(sequences)
-    mask = context.skullstrip(sequences[skullstrip_base_key])
+    skullstrip_base_key = context.get_skullstripping_base(sequence_paths)
+    mask = context.skullstrip(sequence_paths[skullstrip_base_key])
 
-    for key in sequences.viewkeys():
-        sequences[key] = context.apply_mask(sequences[key], mask)
+    for key in sequence_paths.viewkeys():
+        sequence_paths[key] = context.apply_mask(sequence_paths[key], mask)
 
     # -- Biasfield correction, intensityrange standardization
-    for key in sequences.viewkeys():
-        sequences[key] = context.correct_biasfield(sequences[key], mask)
-        sequences[key] = context.standardize_intensityrange(
-            sequences[key],
+    for key in sequence_paths.viewkeys():
+        sequence_paths[key] = context.correct_biasfield(sequence_paths[key],
+                                                        mask)
+        sequence_paths[key] = context.standardize_intensityrange(
+            sequence_paths[key],
             mask,
             context.get_intensity_model(key))
 
     # -- Feature extraction and RDF classification
 
-    features = context.extract_features(sequences, mask)
+    features = context.extract_features(sequence_paths, mask)
     classification_image, probability_image = context.apply_rdf(
-        context.get_forest(sequences), features, mask)
+        context.get_forest(sequence_paths), features, mask)
 
-    os.symlink(classification_image,
-               os.path.join(context.output_dir, 'segmentation.nii.gz'))
-    os.symlink(probability_image,
-               os.path.join(context.output_dir, 'probability.nii.gz'))
+    for path, filename in [(classification_image, 'segmentation.nii.gz'),
+                           (probability_image, 'probability.nii.gz')]:
+        out_path = os.path.join(context.output_dir, filename)
+        if os.path.isfile(out_path):
+            os.remove(out_path)
+        os.symlink(path, out_path)
 
 
 def _check_configured_directory(path, name):
@@ -171,7 +182,21 @@ class PipelineContext(object):
     def get_registration_base(self, sequences):
         """Return the sequence to register other sequences to.
 
-        TODO
+        Parameters
+        ----------
+        sequences : iterable[string]
+            Available sequences
+
+        Returns
+        -------
+        string
+            Of the available sequences, the one to be used as registration base
+            (as configured in the config file)
+
+        Raises
+        ------
+        RuntimeError
+            If none of the given sequences can be used as registration base
         """
         for s in self._registration_base_list:
             if s in sequences:
@@ -183,7 +208,21 @@ class PipelineContext(object):
     def get_skullstripping_base(self, sequences):
         """Return the sequence to use for skullstripping.
 
-        TODO
+        Parameters
+        ----------
+        sequences : iterable[string]
+            Available sequences
+
+        Returns
+        -------
+        string
+            Of the available sequences, the one to be used as skullstripping
+            base (as configured in the config file)
+
+        Raises
+        ------
+        RuntimeError
+            If none of the given sequences can be used as skullstripping base
         """
         for s in self._skullstripping_base_list:
             if s in sequences:
@@ -195,15 +234,46 @@ class PipelineContext(object):
     def get_intensity_model(self, sequence):
         """Return the intensity model file for the given sequence.
 
-        TODO
+        Parameters
+        ----------
+        sequence : string
+            Sequence identifier
+
+        Returns
+        -------
+        string
+            Path to the corresponding intensity model file
+
+        Raises
+        ------
+        ValueError
+            If no intensity model was found for the given sequence
         """
-        return os.path.join(self._intensity_model_dir,
+        path = os.path.join(self._intensity_model_dir,
                             'intensity_model_{}.pkl'.format(sequence))
+        if os.path.isfile(path):
+            return path
+        else:
+            raise ValueError('No intensity model found; model file was'
+                             'expected at {}'.format(path))
 
     def get_forest(self, sequences):
         """Return the appropriate RDF file for the given sequences.
 
-        TODO
+        Parameters
+        ----------
+        sequences : iterable[string]
+            Sequences to apply the forest to
+
+        Returns
+        -------
+        string
+            Path to the RDF file
+
+        Raises
+        ------
+        ValueError
+            If no forest was found for the given sequence combination
         """
         # TODO replace with selection mechanism
         if sequences.viewkeys() == set(
@@ -216,6 +286,16 @@ class PipelineContext(object):
         """Resample given image.
 
         The spacing is defined in the context's configuration file.
+
+        Parameters
+        ----------
+        in_file : string
+            Path to the file to be resampled
+
+        Returns
+        -------
+        string
+            Path to the resampled file
         """
         cached_resample = self._mem.cache(
             lesionpypeline.interfaces.medpy.MedpyResample)
@@ -226,12 +306,15 @@ class PipelineContext(object):
     def register(self, moving_image, fixed_image):
         """Register moving image to fixed image.
 
+        Registration is performed using the elastix program. The path to the
+        elastix configuration file is configured in the pipeline config file.
+
         Parameters
         ----------
         moving_image : string
             Path to the image to warp.
         fixed_image : string
-            Path to the image to register to.
+            Path to the image to register *moving_image* to.
 
         Returns
         -------
@@ -250,9 +333,19 @@ class PipelineContext(object):
                 result.outputs.transform)
 
     def transform(self, moving_image, transform_file):
-        """Apply transfrom resulting from registration to an image.
+        """Apply transfrom resulting from elastix registration to an image.
 
-        TODO
+        Parameters
+        ----------
+        moving_image : string
+            Path to the image to warp
+        transform_file : string
+            Path to the elastix transform to apply
+
+        Returns
+        -------
+        string
+            Path to the warped image
         """
         cached_transform = self._mem.cache(nipype.interfaces.elastix.ApplyWarp)
         result = cached_transform(moving_image=moving_image,
@@ -261,6 +354,13 @@ class PipelineContext(object):
 
     def skullstrip(self, in_file):
         """Apply skullstripping to an image.
+
+        Skullstripping is performed using the BET program.
+
+        Parameters
+        ----------
+        in_file : string
+            Path to the image to skullstrip
 
         Returns
         -------
@@ -275,7 +375,17 @@ class PipelineContext(object):
     def apply_mask(self, in_file, mask_file):
         """Apply binary mask to an image.
 
-        TODO
+        Parameters
+        ----------
+        in_file : string
+            Path to the image to mask
+        mask_file : string
+            Path to the mask file
+
+        Returns
+        -------
+        string
+            Path to the masked image
         """
         cached_apply_mask = self._mem.cache(
             lesionpypeline.interfaces.utility.ApplyMask)
@@ -285,7 +395,19 @@ class PipelineContext(object):
     def correct_biasfield(self, in_file, mask_file):
         """Perform biasfield correction and metadata correction on an image.
 
-        TODO
+        Biasfield correction is performed using the CMTK mrbias program.
+
+        Parameters
+        ----------
+        in_file : string
+            Path to the image to perform biasfield and metadata correction on
+        mask_file : string
+            Path to mask file used to mask biasfield correction
+
+        Returns
+        -------
+        string
+            Path to the corrected image
         """
         cached_bfc = self._mem.cache(lesionpypeline.interfaces.cmtk.MRBias)
         cached_mod_metadata = self._mem.cache(
@@ -301,7 +423,22 @@ class PipelineContext(object):
     def standardize_intensityrange(self, in_file, mask_file, model_file):
         """Perform intensity range standardization and outlier condensation.
 
-        TODO
+        Intensityrange standardization is performed using the respective medpy
+        program.
+
+        Parameters
+        ----------
+        in_file : string
+            Path to the image to perform intensityrange standardization on
+        mask_file : string
+            Path to mask file used to mask intensityrange standardization
+        model_file : string
+            Path to the intensity model file
+
+        Returns
+        -------
+        string
+            Path to the standardized file with condensed outliers
         """
         cached_irs = self._mem.cache(
             lesionpypeline.interfaces.medpy.MedpyIntensityRangeStandardization)
@@ -315,14 +452,24 @@ class PipelineContext(object):
 
         return result_co.outputs.out_file
 
-    def extract_features(self, sequences, mask_file):
+    def extract_features(self, sequence_paths, mask_file):
         """Extract features from given images.
 
-        TODO
+        Parameters
+        ----------
+        sequence_paths : dict[string, string]
+            Dictionary mapping sequence identifier to sequence file path
+        mask_file : string
+            Path to mask file used to mask feature extraction
+
+        Returns
+        -------
+        string
+            Path to output directory containing the extracted features
         """
         cached_extract_features = self._mem.cache(
             lesionpypeline.interfaces.utility.ExtractFeatures)
-        result = cached_extract_features(sequence_paths=sequences,
+        result = cached_extract_features(sequence_paths=sequence_paths,
                                          config_file=self._feature_config_file,
                                          mask_file=mask_file,
                                          out_dir='.')
@@ -331,7 +478,22 @@ class PipelineContext(object):
     def apply_rdf(self, forest_file, feature_dir, mask_file):
         """Apply random decision forest algorithm to given feature set.
 
-        TODO
+        Parameters
+        ----------
+        forest_file : string
+            Path to a pickled class containing the classification forest
+        feature_dir : string
+            Path to a directory containing the extracted features to use
+            for classification
+        mask_file : string
+            Path to mask that was used for feature extraction
+
+        Returns
+        -------
+        string
+            Path to binary classification image
+        string
+            Path to probabilistic classification image
         """
         cached_apply_rdf = self._mem.cache(
             lesionpypeline.interfaces.utility.ApplyRdf)
