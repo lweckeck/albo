@@ -66,10 +66,19 @@ class CondenseOutliers(base.BaseInterface):
             in_file = self.inputs.in_file
             return futil.append_file_postfix(in_file, '_condensedoutliers')
 
-class ExtractFeaturesInputSpec(base.DynamicTraitedSpec):
-    mask_file = base.File(desc='Image mask, features are only extracted where mask has 1 values', mandatory=True, exists=True)
-    out_dir = base.Directory(desc='Target folder to store the extracted features')
-    config_file = base.File(desc='Configuration file, containing a struct called features_to_extract that follows a special syntax', mandatory=True, exists=True)
+class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec):
+    sequence_paths = base.traits.Dict(
+        key_trait=base.traits.Str, value_trait=base.traits.File(exists=True),
+        mandatory=True)
+    mask_file = base.File(
+        desc='Image mask, features are only extracted where mask has 1 values',
+        mandatory=True, exists=True)
+    out_dir = base.Directory(
+        desc='Target folder to store the extracted features')
+    config_file = base.File(
+        desc='Configuration file, containing a struct called'
+        'features_to_extract that follows a special syntax',
+        mandatory=True, exists=True)
     
 class ExtractFeaturesOutputSpec(base.TraitedSpec):
     out_dir = base.File(desc='Directory containing the extracted features')
@@ -78,23 +87,13 @@ class ExtractFeatures(nio.IOBase):
     input_spec = ExtractFeaturesInputSpec
     output_spec = ExtractFeaturesOutputSpec
 
-    _sequences = []
-
-    def __init__(self, sequences, **inputs):
-        super(ExtractFeatures, self).__init__(**inputs)
-        
-        self._sequences = sequences
-        # use add_class_trait
-        nio.add_traits(self.inputs, sequences, base.File)
-        self.inputs.set(**inputs)
-            
     def _run_interface(self, runtime):
         features = exf.load_feature_config(self.inputs.config_file)
-        image_paths = {sequence: self.inputs.get()[sequence] for sequence in self._sequences}
+        sequence_paths = self.inputs.sequence_paths
         mask_file = self.inputs.mask_file
         out_dir = os.path.abspath(self.inputs.out_dir)
 
-        exf.extract_features(features, image_paths, mask_file, out_dir)
+        exf.extract_features(features, sequence_paths, mask_file, out_dir)
         return runtime
 
     def _list_outputs(self):
