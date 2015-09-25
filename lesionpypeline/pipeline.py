@@ -155,11 +155,12 @@ class Pipeline(object):
 
     def _get_forest(self, sequences):
         # TODO replace with selection mechanism
-        if set(sequences) == set(
-                ['flair_tra', 'dw_tra_b1000_dmean', 't1_sag_tfe']):
-            return os.path.join(self._forest_dir, 'forest.pklz')
+        forest_file = os.path.join(self._forest_dir, 'forest.pklz')
+        if os.path.isfile(forest_file):
+            return forest_file
         else:
-            raise ValueError('No forest file available for given sequences!')
+            raise ValueError('No forest file found at {}!'
+                             .format(forest_file))
 
     def run_pipeline(self, sequence_list):
         """Execute the lesion detection pipeline."""
