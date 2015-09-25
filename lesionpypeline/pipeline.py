@@ -121,6 +121,8 @@ class Pipeline(object):
         self._forest_dir = _check_configured_directory(
             config.get('classification', 'forest_dir'),
             'classification forest directory')
+        logger.info('Using classification forest directory {}'
+                    .format(self._forest_dir))
 
     @property
     def output_dir(self):
