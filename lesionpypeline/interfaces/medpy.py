@@ -32,7 +32,7 @@ class MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
     force = base.traits.Bool(desc='Overwrite existing files', argstr='-f')
 
 class MedpyIntensityRangeStandardizationOutputSpec(base.TraitedSpec):
-      out_file = base.File(desc='The output image', exists=True)
+    out_file = base.File(desc='The output image', exists=True)
 
 class MedpyIntensityRangeStandardization(base.CommandLine):
     """Provides an interface for the medpy_intensity_range_standardization.py script, as of now restricted to the transformation case"""
