@@ -5,10 +5,9 @@ import nipype.interfaces.io as nio
 import lesionpypeline.utility.fileutil as futil
 import lesionpypeline.utility.niftimodifymetadata as nmmd
 import lesionpypeline.utility.condenseoutliers as cdo
-import lesionpypeline.utility.extract_features as exf
-import lesionpypeline.utility.apply_rdf as rdf
+import lesionpypeline.classify as cfy
 
-# does not work for some reason ("Import error: No module named io"), replaced with exf.mio since import works there
+# does not work for some reason ("Import error: No module named io"), replaced with cfy.mio since import works there
 #import medpy.io as mio
 
 
@@ -88,12 +87,12 @@ class ExtractFeatures(nio.IOBase):
     output_spec = ExtractFeaturesOutputSpec
 
     def _run_interface(self, runtime):
-        features = exf.load_feature_config(self.inputs.config_file)
+        features = cfy.load_feature_config(self.inputs.config_file)
         sequence_paths = self.inputs.sequence_paths
         mask_file = self.inputs.mask_file
         out_dir = os.path.abspath(self.inputs.out_dir)
 
-        exf.extract_features(features, sequence_paths, mask_file, out_dir)
+        cfy.extract_features(features, sequence_paths, mask_file, out_dir)
         return runtime
 
     def _list_outputs(self):
@@ -122,7 +121,7 @@ class ApplyRdf(base.BaseInterface):
             self.inputs.out_file_segmentation = self._gen_filename('out_file_segmentation')
         if not base.isdefined(self.inputs.out_file_probabilities):
             self.inputs.out_file_probabilities = self._gen_filename('out_file_probabilities')
-        rdf.apply_rdf(
+        cfy.apply_rdf(
             self.inputs.forest_file,
             self.inputs.in_dir,
             self.inputs.mask_file,
@@ -167,11 +166,11 @@ class ApplyMask(base.BaseInterface):
         mask_file = self.inputs.mask_file
         out_file = self.inputs.out_file
 
-        image, header = exf.mio.load(in_file)
-        mask, _ = exf.mio.load(mask_file)
+        image, header = cfy.mio.load(in_file)
+        mask, _ = cfy.mio.load(mask_file)
 
         image[~(mask.astype(numpy.bool))] = 0
-        exf.mio.save(image, out_file, header)
+        cfy.mio.save(image, out_file, header)
         
         return runtime
 
