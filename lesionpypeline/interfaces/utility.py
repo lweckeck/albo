@@ -6,7 +6,6 @@ import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
 
 import lesionpypeline.utility.niftimodifymetadata as nmmd
-import lesionpypeline.utility.condenseoutliers as cdo
 import lesionpypeline.classify as cfy
 
 # does not work for some reason ("Import error: No module named io"), replaced
@@ -70,7 +69,12 @@ class CondenseOutliers(base.BaseInterface):
         in_file = self.inputs.in_file
         out_file = self.inputs.out_file
 
-        cdo.condense_outliers(in_file, out_file)
+        image, header = cfy.mio.load(in_file)
+        lower, upper = numpy.percentile(image, (1, 99.9))
+        image[image < lower] = lower
+        image[image > upper] = upper
+        cfy.mio.save(image, out_file, header)
+
         return runtime
 
     def _list_outputs(self):
