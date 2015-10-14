@@ -280,7 +280,14 @@ class Pipeline(object):
                                  fixed_image=fixed_image,
                                  parameters=[self._elastix_parameter_file],
                                  terminal_output='none')
-        return (result.outputs.warped_file,
+        # elastix gives the same name to all warped files; restore original
+        # name for clarity
+        oldpath, oldname = os.path.split(moving_image)
+        newpath, newname = os.path.split(result.outputs.warped_file)
+        warped_file = os.path.join(newpath, oldname)
+        os.rename(result.outputs.warped_file, warped_file)
+
+        return (warped_file,
                 result.outputs.transform)
 
     def transform(self, moving_image, transform_file):
