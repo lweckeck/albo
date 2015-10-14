@@ -1,7 +1,10 @@
 import os
 import numpy
+import shutil
+
 import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
+
 import lesionpypeline.utility.fileutil as futil
 import lesionpypeline.utility.niftimodifymetadata as nmmd
 import lesionpypeline.utility.condenseoutliers as cdo
@@ -23,10 +26,14 @@ class NiftiModifyMetadata(base.BaseInterface):
     output_spec = NiftiModifyMetadataOutputSpec
 
     def _run_interface(self, runtime):
-        image = self.inputs.in_file
+        in_file = self.inputs.in_file
         tasks = self.inputs.tasks
 
-        nmmd.nifti_modifiy_metadata(image, tasks)
+        head, tail = os.path.split(in_file)
+        out_file = os.path.join(os.getcwd(), tail)
+        shutil.copy(in_file, out_file)
+
+        nmmd.nifti_modifiy_metadata(out_file, tasks)
         return runtime
 
     def _list_outputs(self):
