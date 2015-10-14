@@ -5,7 +5,7 @@ import shutil
 import nipype.interfaces.base as base
 import nipype.interfaces.io as nio
 
-import lesionpypeline.utility.niftimodifymetadata as nmmd
+import lesionpypeline.niftimodifymetadata as nmmd
 import lesionpypeline.classify as cfy
 
 # does not work for some reason ("Import error: No module named io"), replaced
