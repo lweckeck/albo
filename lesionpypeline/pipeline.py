@@ -7,9 +7,9 @@ pipeline execution which is read from a config file.
 
 import os
 import shutil
-import logging
 import ConfigParser
 
+import lesionpypeline.log as logging
 import nipype.caching
 
 import nipype.interfaces.elastix
@@ -18,14 +18,13 @@ import lesionpypeline.interfaces.medpy
 import lesionpypeline.interfaces.cmtk
 import lesionpypeline.interfaces.utility
 
+logger = logging.get_logger(__name__)
+
 # TODO insert correct names
 ADC_ID = 'adc'
 DWI_ID = 'dwi'
 
 SEQUENCE_FILE_EXT = '.nii.gz'
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def _check_configured_directory(path, name):

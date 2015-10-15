@@ -4,12 +4,13 @@
 import os
 import sys
 import argparse
-import logging
 
 import lesionpypeline.pipeline as lp
+import lesionpypeline.log as logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.get_logger(__name__)
+logging.set_global_level(logging.DEBUG)
+logging.set_nipype_level(logging.INFO)
 
 
 def main():
