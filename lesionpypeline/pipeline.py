@@ -285,7 +285,10 @@ class Pipeline(object):
         oldpath, oldname = os.path.split(moving_image)
         newpath, newname = os.path.split(result.outputs.warped_file)
         warped_file = os.path.join(newpath, oldname)
-        os.rename(result.outputs.warped_file, warped_file)
+
+        # if the interface has run previously, the file is already renamed
+        if os.path.isfile(result.outputs.warped_file):
+            os.renames(result.outputs.warped_file, warped_file)
 
         return (warped_file,
                 result.outputs.transform)
