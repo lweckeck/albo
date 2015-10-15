@@ -18,7 +18,7 @@ import lesionpypeline.interfaces.medpy
 import lesionpypeline.interfaces.cmtk
 import lesionpypeline.interfaces.utility
 
-logger = logging.get_logger(__name__)
+log = logging.get_logger(__name__)
 
 # TODO insert correct names
 ADC_ID = 'adc'
@@ -30,7 +30,7 @@ SEQUENCE_FILE_EXT = '.nii.gz'
 def _check_configured_directory(path, name):
     path = os.path.abspath(path)
     if not os.path.isdir(path):
-        logger.warn('The configured {} {} does not exist'
+        log.warn('The configured {} {} does not exist'
                     ' - attempting to create directory...'
                     .format(name, path))
         os.makedirs(path)
@@ -46,7 +46,6 @@ def _check_configured_file(path, name):
 
 
 class Pipeline(object):
-
     """This class stores contextual information for pipeline execution.
 
     It stores a cache and information from a configuration file, to
@@ -81,12 +80,12 @@ class Pipeline(object):
         cache_dir = _check_configured_directory(
             config.get('common', 'cache_dir'), 'cache directory')
         self._mem = nipype.caching.Memory(cache_dir)
-        logger.info('Using cache directory {}'.format(cache_dir))
+        log.debug('Using cache directory {}'.format(cache_dir))
 
         self._output_dir = _check_configured_directory(
             config.get('common', 'output_dir'),
             'output directory')
-        logger.info('Using output directory {}'.format(self._output_dir))
+        log.debug('Using output directory {}'.format(self._output_dir))
 
         pixel_spacing = config.get('resampling', 'pixel_spacing')
         try:
@@ -110,8 +109,8 @@ class Pipeline(object):
         self._intensity_model_dir = _check_configured_directory(
             config.get('intensityrangestandardization', 'model_dir'),
             'intensity model directory')
-        logger.info('Using intensity model directory {}'
-                    .format(self._intensity_model_dir))
+        log.debug('Using intensity model directory {}'
+                  .format(self._intensity_model_dir))
 
         self._feature_config_file = _check_configured_file(
             config.get('classification', 'feature_config_file'),
@@ -120,8 +119,8 @@ class Pipeline(object):
         self._forest_dir = _check_configured_directory(
             config.get('classification', 'forest_dir'),
             'classification forest directory')
-        logger.info('Using classification forest directory {}'
-                    .format(self._forest_dir))
+        log.debug('Using classification forest directory {}'
+                  .format(self._forest_dir))
 
     @property
     def output_dir(self):
@@ -206,7 +205,7 @@ class Pipeline(object):
         for key in sequence_paths.viewkeys():
             sequence_paths[key] = self.apply_mask(sequence_paths[key], mask)
 
-            # -- Biasfield correction, intensityrange standardization
+        # -- Biasfield correction, intensityrange standardization
         for key in sequence_paths.viewkeys():
             sequence_paths[key] = self.correct_biasfield(sequence_paths[key],
                                                          mask)

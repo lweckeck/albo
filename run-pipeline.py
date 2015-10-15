@@ -8,9 +8,7 @@ import argparse
 import lesionpypeline.pipeline as lp
 import lesionpypeline.log as logging
 
-logger = logging.get_logger(__name__)
-logging.set_global_level(logging.DEBUG)
-logging.set_nipype_level(logging.INFO)
+log = logging.get_logger(__name__)
 
 
 def main():
@@ -30,12 +28,12 @@ def main():
     parser.add_argument('--clear-cache', action='store_true',
                         help='delete old runs from disk')
     args = parser.parse_args()
-    logger.debug('args = {}'.format(repr(args)))
+    log.debug('args = {}'.format(repr(args)))
 
     pipeline = lp.Pipeline(args.config)
 
     if args.clear_cache:
-        print 'Clearing cache...'
+        log.info('Clearing cache...')
         pipeline.clear_cache()
 
     case_list = list()
@@ -60,17 +58,17 @@ def main():
                                  .format(f))
         case_list.append(case)
 
-    logger.debug('case_list = {}'.format(repr(case_list)))
+    log.debug('case_list = {}'.format(repr(case_list)))
     n = len(case_list)
     if n == 0:
         print 'No cases to process.'
         sys.exit()
 
     for i, case in enumerate(case_list):
-        print 'Processsing case {} of {}...'.format(i+1, n)
+        log.info('Processsing case {} of {}...'.format(i+1, n))
         pipeline.run_pipeline(case)
 
-    print 'All done.'
+    log.info('All done.')
     sys.exit()
 
 
