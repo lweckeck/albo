@@ -3,11 +3,5 @@
 After biasfield correction, the spacing seems to have reverted from (3,3,3) to the default values
 ** TODO error handling
 extract_features: handle mismatch between featureconfig and provided image paths
-** TODO make sure all outputs are reused if present 
-- medpy intensity range standardization: replace out_dir with out_file
-- extract_features: dynamically traited output?
-- apply_rdf: dynamically traited input?
-- merge extract_features and apply_rdf?
-** TODO merge utility modules into single file
 ** TODO validity check of config file
 
