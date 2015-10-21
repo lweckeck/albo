@@ -31,8 +31,8 @@ def _check_configured_directory(path, name):
     path = os.path.abspath(path)
     if not os.path.isdir(path):
         log.warn('The configured {} {} does not exist'
-                    ' - attempting to create directory...'
-                    .format(name, path))
+                 ' - attempting to create directory...'
+                 .format(name, path))
         os.makedirs(path)
     return path
 
@@ -67,7 +67,7 @@ class Pipeline(object):
     _forest_dir = None
 
     def __init__(self, config_file):
-        """.
+        """Read options from configuration file and store relavant information.
 
         Parameters
         ----------
@@ -76,6 +76,12 @@ class Pipeline(object):
         """
         config = ConfigParser.SafeConfigParser()
         config.read(config_file)
+
+        logging.set_global_level(config.get('common', 'log_level'))
+        logging.set_nipype_level(config.get('common', 'nipype_log_level'))
+        log_file = config.get('common', 'log_file')
+        if log_file is not None:
+            logging.set_global_log_file(log_file)
 
         cache_dir = _check_configured_directory(
             config.get('common', 'cache_dir'), 'cache directory')

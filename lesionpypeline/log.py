@@ -10,6 +10,21 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 import nipype
 
 loggers = []
+global_log_level = INFO
+
+formatter = logging.Formatter(
+    '%(levelname)s: %(message)s')
+file_formatter = logging.Formatter(
+    '%(asctime)s %(name)s %(levelname)s:\n\t%(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+nipype_stream_handler = logging.StreamHandler()
+nipype_stream_handler.setFormatter(formatter)
+file_handler = None
+
+for logger in nipype.logging.loggers.values():
+    logger.propagate = False
+    logger.addHandler(nipype_stream_handler)
 
 
 def get_logger(name):
@@ -18,8 +33,14 @@ def get_logger(name):
     See documentation of standard library module logging for further info.
     """
     logger = logging.getLogger(name)
-    loggers.append(logger)
+    logger.setLevel(DEBUG)
+    logger.propagate = False
 
+    logger.addHandler(stream_handler)
+    if file_handler is not None:
+        logger.addHandler(file_handler)
+
+    loggers.append(logger)
     return logger
 
 
@@ -27,16 +48,28 @@ def set_global_level(level):
     """Set the log level for all loggers created by this module."""
     if not isinstance(level, int):
         level = _str2level(level)
-    for logger in loggers:
-        logger.setLevel(level)
+
+    stream_handler.setLevel(level)
 
 
 def set_nipype_level(level):
     """Set the log level for all loggers of the nipype framework."""
     if not isinstance(level, int):
         level = _str2level(level)
+
+    nipype_stream_handler.setLevel(level)
+
+
+def set_global_log_file(path):
+    """Redirect all logging to a file at the given location."""
+    global file_handler
+    file_handler = logging.FileHandler(path)
+    file_handler.setLevel(INFO)
+    file_handler.setFormatter(file_formatter)
+    for logger in loggers:
+        logger.addHandler(file_handler)
     for logger in nipype.logging.loggers.values():
-        logger.setLevel(level)
+        logger.addHandler(file_handler)
 
 
 def _str2level(string):
