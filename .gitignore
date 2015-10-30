@@ -1,8 +1,9 @@
 # output files
 *.dot
 *.png
+*.nii.gz
 out/
-
+cache/
 
 # temporary editor files
 *~
