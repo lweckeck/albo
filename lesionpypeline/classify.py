@@ -26,7 +26,7 @@ def extract_features(features, image_paths, mask_file, out_dir):
     """Extract features from the given images, according to the given feature configuration.
 
     Args:
-        features (dict): Dictionary where keys are sequence identifiers and values are tuples
+        features (list): list of pairs of sequence identifier and feature list. The feature list contains tuples
             (function, kwargs, voxelspacing?). function is a python function handle, kwargs a
             dictionary of named parameters, and voxelspacing? a boolean stating if the image's
             voxelspacing must be passed as an additional parameter.        
@@ -39,7 +39,7 @@ def extract_features(features, image_paths, mask_file, out_dir):
 
     mask = mio.load(mask_file)[0].astype(numpy.bool)
 
-    for sequence, features in features.items():
+    for sequence, features in features:
         image, header = mio.load(image_paths[sequence])
         for function_to_apply, kwargs, voxelspacing in features:
             kwargs['mask'] = mask
@@ -128,6 +128,6 @@ def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segme
     mio.save(out_probabilities, probability_file, header, True)
 
 def get_feature_filenames(features):
-    for sequence, feature_list in features.items():
+    for sequence, feature_list in features:
         for function, kwargs, _ in feature_list:
             yield generate_feature_filename(sequence, function, kwargs)
