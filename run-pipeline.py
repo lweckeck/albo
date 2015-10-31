@@ -7,6 +7,7 @@ import argparse
 
 import lesionpypeline.pipeline as lp
 import lesionpypeline.log as logging
+import lesionpypeline.config as config
 
 log = logging.get_logger(__name__)
 
@@ -25,12 +26,16 @@ def main():
     parser.add_argument('--config', '-c', type=str, default='./pipeline.conf',
                         help='pipeline configuration file'
                         ' (default: ./pipeline.conf')
+    parser.add_argument('--pack', '-p', type=str,
+                        help='path to classifier pack folder')
     parser.add_argument('--clear-cache', action='store_true',
                         help='delete old runs from disk')
     args = parser.parse_args()
     log.debug('args = {}'.format(repr(args)))
 
-    pipeline = lp.Pipeline(args.config)
+    config.read_file(args.config)
+    config.read_file(os.path.join(args.pack, 'pack.conf'))
+    pipeline = lp.Pipeline(args.pack)
 
     if args.clear_cache:
         log.info('Clearing cache...')

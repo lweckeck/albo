@@ -7,9 +7,9 @@ pipeline execution which is read from a config file.
 
 import os
 import shutil
-import ConfigParser
 
 import lesionpypeline.log as logging
+import lesionpypeline.config as config
 import nipype.caching
 
 import nipype.interfaces.elastix
@@ -52,6 +52,7 @@ class Pipeline(object):
     make the core pipeline functionality easily available.
     """
 
+    _pack_path = None
     _mem = None
     _output_dir = None
 
@@ -64,9 +65,9 @@ class Pipeline(object):
     _intensity_model_dir = None
 
     _feature_config_file = None
-    _forest_dir = None
+    _forest_file = None
 
-    def __init__(self, config_file):
+    def __init__(self, classifier_pack_path):
         """Read options from configuration file and store relavant information.
 
         Parameters
@@ -74,26 +75,25 @@ class Pipeline(object):
         config : ConfigParser
             ConfigParser object from which the pipeline context is created
         """
-        config = ConfigParser.SafeConfigParser()
-        config.read(config_file)
+        self._pack_path = classifier_pack_path
 
-        logging.set_global_level(config.get('common', 'log_level'))
-        logging.set_nipype_level(config.get('common', 'nipype_log_level'))
-        log_file = config.get('common', 'log_file')
+        logging.set_global_level(config.conf['log']['level'])
+        logging.set_nipype_level(config.conf['log']['nipype_level'])
+        log_file = config.conf['log']['file']
         if log_file is not None:
             logging.set_global_log_file(log_file)
 
         cache_dir = _check_configured_directory(
-            config.get('common', 'cache_dir'), 'cache directory')
+            config.conf['general']['cache_dir'], 'cache directory')
         self._mem = nipype.caching.Memory(cache_dir)
         log.debug('Using cache directory {}'.format(cache_dir))
 
         self._output_dir = _check_configured_directory(
-            config.get('common', 'output_dir'),
+            config.conf['general']['output_dir'],
             'output directory')
         log.debug('Using output directory {}'.format(self._output_dir))
 
-        pixel_spacing = config.get('resampling', 'pixel_spacing')
+        pixel_spacing = config.conf['preprocessing']['pixel_spacing']
         try:
             x, y, z = map(float, pixel_spacing.split(','))
         except ValueError:
@@ -102,31 +102,33 @@ class Pipeline(object):
                              'as decimal mark!'.format(pixel_spacing))
         self._pixel_spacing = [x, y, z]
 
+        cwd = os.getcwd()
+        os.chdir(classifier_pack_path)
+
         self._elastix_parameter_file = _check_configured_file(
-            config.get('resampling', 'elastix_parameter_file'),
+            config.conf['preprocessing']['elastix_parameter_file'],
             'elastix configuration file')
 
-        rb = config.get('resampling', 'registration_base')
+        rb = config.conf['preprocessing']['registration_base']
         self._registration_base_list = map(str.strip, rb.split(','))
 
-        sb = config.get('skullstripping', 'base_image')
+        sb = config.conf['preprocessing']['skullstripping_base']
         self._skullstripping_base_list = map(str.strip, sb.split(','))
 
         self._intensity_model_dir = _check_configured_directory(
-            config.get('intensityrangestandardization', 'model_dir'),
+            '.',
             'intensity model directory')
         log.debug('Using intensity model directory {}'
                   .format(self._intensity_model_dir))
 
         self._feature_config_file = _check_configured_file(
-            config.get('classification', 'feature_config_file'),
+            config.conf['classification']['feature_config_file'],
             'feature configuration file')
 
-        self._forest_dir = _check_configured_directory(
-            config.get('classification', 'forest_dir'),
-            'classification forest directory')
-        log.debug('Using classification forest directory {}'
-                  .format(self._forest_dir))
+        self._forest_file = _check_configured_file(
+            config.conf['classification']['classifier_file'],
+            'classification forest file')
+        os.chdir(cwd)
 
     @property
     def output_dir(self):
@@ -159,18 +161,11 @@ class Pipeline(object):
                              'model file was expected at {}'
                              .format(sequence, path))
 
-    def _get_forest(self, sequences):
-        # TODO replace with selection mechanism
-        forest_file = os.path.join(self._forest_dir, 'forest.pklz')
-        if os.path.isfile(forest_file):
-            return forest_file
-        else:
-            raise ValueError('No forest file found at {}!'
-                             .format(forest_file))
-
     def run_pipeline(self, sequence_list):
         """Execute the lesion detection pipeline."""
         # -- Collect sequence files in dict
+        cwd = os.getcwd()
+        os.chdir(self._pack_path)
         sequence_paths = dict()
         for item in sequence_list:
             if item.endswith(SEQUENCE_FILE_EXT):
@@ -224,7 +219,7 @@ class Pipeline(object):
 
         features = self.extract_features(sequence_paths, mask)
         classification_image, probability_image = self.apply_rdf(
-            self._get_forest(sequence_paths), features, mask)
+            self._forest_file, features, mask)
 
         for path, filename in [(classification_image, 'segmentation.nii.gz'),
                                (probability_image, 'probability.nii.gz')]:
@@ -232,6 +227,8 @@ class Pipeline(object):
             if os.path.isfile(out_path):
                 os.remove(out_path)
             shutil.copy2(path, out_path)
+
+        os.chdir(cwd)
 
     def clear_cache(self):
         """Clear all files from cache."""
