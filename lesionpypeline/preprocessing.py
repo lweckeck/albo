@@ -141,7 +141,7 @@ def register(moving_image, fixed_image):
               '\tfixed_image = {}'.format(moving_image, fixed_image))
     _register = mem.PipeFunc(nipype.interfaces.elastix.Registration,
                              config.conf['pipeline']['cache_dir'])
-    parameters = config.conf['preprocessing']['elastix_parameter_file']
+    parameters = config.conf['pipeline']['elastix_parameter_file']
     result = _register(moving_image=moving_image,
                        fixed_image=fixed_image,
                        parameters=parameters.split(','),
