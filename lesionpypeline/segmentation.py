@@ -5,7 +5,7 @@ import lesionpypeline.log as logging
 import lesionpypeline.config as config
 import nipype.caching.memory as mem
 
-import lesionpypeline.interfaces.utility
+import lesionpypeline.interfaces.classifier
 
 log = logging.get_logger(__name__)
 
@@ -40,7 +40,7 @@ def extract_features(sequence_paths, mask_file):
               '\tsequence_paths = {}\n'
               '\tmask_file = {}'.format(sequence_paths, mask_file))
     _extract_features = mem.PipeFunc(
-        lesionpypeline.interfaces.utility.ExtractFeatures,
+        lesionpypeline.interfaces.classifier.ExtractFeatures,
         config.conf['pipeline']['cache_dir'])
     config_file = config.conf['segmentation']['feature_config_file']
 
@@ -72,7 +72,7 @@ def apply_rdf(feature_dir, mask_file):
               '\tfeature_dir = {}\n'
               '\tmask_file = {}'.format(feature_dir, mask_file))
     _apply_rdf = mem.PipeFunc(
-        lesionpypeline.interfaces.utility.ApplyRdf,
+        lesionpypeline.interfaces.classifier.ApplyRdf,
         config.conf['pipeline']['cache_dir'])
     config_file = config.conf['segmentation']['feature_config_file']
     classifier_file = config.conf['segmentation']['classifier_file']
