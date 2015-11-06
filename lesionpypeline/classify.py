@@ -39,16 +39,16 @@ def extract_features(features, image_paths, mask_file, out_dir):
 
     mask = mio.load(mask_file)[0].astype(numpy.bool)
 
-    for sequence, features in features:
-        image, header = mio.load(image_paths[sequence])
-        for function_to_apply, kwargs, voxelspacing in features:
-            kwargs['mask'] = mask
-            if voxelspacing:
-                kwargs['voxelspacing'] = mio.header.get_pixel_spacing(header)
+    images = {key: mio.load(image_paths[key]) for key in image_paths}
+    for sequence, function_to_apply, kwargs, voxelspacing in features:
+        image, header = images[sequence]
+        kwargs['mask'] = mask
+        if voxelspacing:
+            kwargs['voxelspacing'] = mio.header.get_pixel_spacing(header)
                 
-            feature_vector = function_to_apply(image, **kwargs)
-            filename = generate_feature_filename(sequence, function_to_apply, kwargs)
-            save_feature_vector(feature_vector, out_dir, filename)
+        feature_vector = function_to_apply(image, **kwargs)
+        filename = generate_feature_filename(sequence, function_to_apply, kwargs)
+        save_feature_vector(feature_vector, out_dir, filename)
 
 def load_feature_config(feature_config_file):
     """Loads the feature configuration dictionary from the given file.
@@ -128,6 +128,5 @@ def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segme
     mio.save(out_probabilities, probability_file, header, True)
 
 def get_feature_filenames(features):
-    for sequence, feature_list in features:
-        for function, kwargs, _ in feature_list:
-            yield generate_feature_filename(sequence, function, kwargs)
+    for sequence, function, kwargs, _ in features:
+        yield generate_feature_filename(sequence, function, kwargs)
