@@ -33,7 +33,7 @@ class NiftiModifyMetadata(base.BaseInterface):
             self.inputs.out_file = self._gen_filename('out_file')
 
         shutil.copy(self.inputs.in_file, self.inputs.out_file)
-        nmmd.nifti_modifiy_metadata(self.inputs.out_file, self.inputs.tasks)
+        nmmd.nifti_modify_metadata(self.inputs.out_file, self.inputs.tasks)
         return runtime
 
     def _list_outputs(self):
