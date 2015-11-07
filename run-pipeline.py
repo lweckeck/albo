@@ -31,7 +31,7 @@ def main():
     args = parser.parse_args()
 
     config.read_file(args.config)
-    config.read_file(os.path.join(args.pack, 'pack.conf'))
+    config.read_module(args.pack)
 
     logging.set_global_level(config.conf['log']['level'])
     logging.set_nipype_level(config.conf['log']['nipype_level'])

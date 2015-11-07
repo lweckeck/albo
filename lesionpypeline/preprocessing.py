@@ -26,8 +26,8 @@ def preprocess(sequences):
     skullstripping, biasfield correction and intensityrange standardization.
     """
     # -- Preparation
-    fixed_image_key = config.conf['preprocessing']['registration_base']
-    skullstrip_base_key = config.conf['preprocessing']['skullstripping_base']
+    fixed_image_key = config.conf['registration_base']
+    skullstrip_base_key = config.conf['skullstripping_base']
 
     if fixed_image_key not in sequences:
         raise ValueError('The configured registration base sequence {} is not'
@@ -41,7 +41,7 @@ def preprocess(sequences):
     for key in sequences:
         try:
             model_key = 'intensity_model_' + key
-            intensity_models[key] = config.conf['preprocessing'][model_key]
+            intensity_models[key] = config.conf[model_key]
         except KeyError:
             raise KeyError('No intensity model for sequence {} configured in'
                            ' classifier pack!'.format(key))
@@ -104,15 +104,15 @@ def resample(in_file):
               '\tin_file = {}'.format(in_file))
     _resample = mem.PipeFunc(lesionpypeline.interfaces.medpy.MedpyResample,
                              config.conf['pipeline']['cache_dir'])
-    spacing = config.conf['preprocessing']['pixel_spacing']
     try:
-        x, y, z = map(float, spacing.split(','))
+        spacing = map(float, config.conf['pixel_spacing'])
     except ValueError:
         raise ValueError('The configured pixel spacing {} is invalid; must'
                          'be exactly 3 comma-separated numbers with a dot'
                          'as decimal mark!'.format(spacing))
+    spacing_string = ','.join(map(str, spacing))
 
-    result = _resample(in_file=in_file, spacing=spacing)
+    result = _resample(in_file=in_file, spacing=spacing_string)
     return result.outputs.out_file
 
 

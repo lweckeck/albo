@@ -14,9 +14,9 @@ class ExtractFeaturesInputSpec(base.BaseInterfaceInputSpec):
         mandatory=True, exists=True)
     out_dir = base.Directory(
         desc='Target folder to store the extracted features')
-    config_file = base.File(
-        desc='Configuration file, containing a struct called'
-        'features_to_extract that follows a special syntax',
+    feature_list = base.traits.List(
+        desc='List containing tuples of the form '
+        '(sequence_id, function, parameter_dict, voxelspacing?)',
         mandatory=True, exists=True)
 
 
@@ -29,12 +29,12 @@ class ExtractFeatures(nio.IOBase):
     output_spec = ExtractFeaturesOutputSpec
 
     def _run_interface(self, runtime):
-        features = cfy.load_feature_config(self.inputs.config_file)
+        feature_list = self.inputs.feature_list
         sequence_paths = self.inputs.sequence_paths
         mask_file = self.inputs.mask_file
         out_dir = os.path.abspath(self.inputs.out_dir)
 
-        cfy.extract_features(features, sequence_paths, mask_file, out_dir)
+        cfy.extract_features(feature_list, sequence_paths, mask_file, out_dir)
         return runtime
 
     def _list_outputs(self):
@@ -51,8 +51,9 @@ class ApplyRdfInputSpec(base.BaseInterfaceInputSpec):
     mask_file = base.File(
         desc='the mask file indicating on which voxels to operate',
         mandatory=True, exists=True)
-    feature_config_file = base.File(
-        desc='the file containing a struct indicating the features to use',
+    feature_list = base.traits.List(
+        desc='List containing tuples of the form '
+        '(sequence_id, function, parameter_dict, voxelspacing?)',
         mandatory=True, exists=True)
     out_file_segmentation = base.File(desc='the target segmentation file')
     out_file_probabilities = base.File(desc='the target probability file')
@@ -78,7 +79,7 @@ class ApplyRdf(base.BaseInterface):
             self.inputs.forest_file,
             self.inputs.in_dir,
             self.inputs.mask_file,
-            self.inputs.feature_config_file,
+            self.inputs.feature_list,
             self.inputs.out_file_segmentation,
             self.inputs.out_file_probabilities)
 

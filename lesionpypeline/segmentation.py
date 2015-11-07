@@ -42,10 +42,10 @@ def extract_features(sequence_paths, mask_file):
     _extract_features = mem.PipeFunc(
         lesionpypeline.interfaces.classifier.ExtractFeatures,
         config.conf['pipeline']['cache_dir'])
-    config_file = config.conf['segmentation']['feature_config_file']
+    feature_list = config.conf['features']
 
     result = _extract_features(
-        sequence_paths=sequence_paths, config_file=config_file,
+        sequence_paths=sequence_paths, feature_list=feature_list,
         mask_file=mask_file, out_dir='.')
     return result.outputs.out_dir
 
@@ -74,11 +74,11 @@ def apply_rdf(feature_dir, mask_file):
     _apply_rdf = mem.PipeFunc(
         lesionpypeline.interfaces.classifier.ApplyRdf,
         config.conf['pipeline']['cache_dir'])
-    config_file = config.conf['segmentation']['feature_config_file']
-    classifier_file = config.conf['segmentation']['classifier_file']
+    feature_list = config.conf['features']
+    classifier_file = config.conf['classifier_file']
 
     result = _apply_rdf(forest_file=classifier_file,
-                        feature_config_file=config_file,
+                        feature_list=feature_list,
                         in_dir=feature_dir, mask_file=mask_file)
     return (result.outputs.out_file_segmentation,
             result.outputs.out_file_probabilities)

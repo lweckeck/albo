@@ -26,10 +26,11 @@ def extract_features(features, image_paths, mask_file, out_dir):
     """Extract features from the given images, according to the given feature configuration.
 
     Args:
-        features (list): list of pairs of sequence identifier and feature list. The feature list contains tuples
-            (function, kwargs, voxelspacing?). function is a python function handle, kwargs a
-            dictionary of named parameters, and voxelspacing? a boolean stating if the image's
-            voxelspacing must be passed as an additional parameter.        
+        features (list): list of tuples
+            (sequence, function, kwargs, voxelspacing?). function is a python
+            function handle, kwargs a dictionary of named parameters, and
+            voxelspacing? a boolean stating if the image's voxelspacing must be
+            passed as an additional parameter.
         image_paths (dict(str: str)): Dictionary that contains the paths to the images the
             features are to be extracted from as pairs "sequence_id: path".
             Sequence identifiers must be consistent with feature_config_file!
@@ -79,21 +80,24 @@ def save_feature_vector(feature_vector, target_dir, filename):
         numpy.save(f, feature_vector.astype(TARGET_DTYPE))
 
         
-def apply_rdf(forest_file, feature_folder, mask_file, feature_config_file, segmentation_file, probability_file):
+def apply_rdf(forest_file, feature_folder, mask_file, features, segmentation_file, probability_file):
     """Apply an RDF to a case.
         
     Args:
         forest_file (str): the decision forest file
         feature_folder (str): the case folder holding the feature files
         mask_file (str): the cases mask file
-        feature_config_file (str): file containing a struct identifying the features to use
+        features (list): list of tuples
+            (sequence, function, kwargs, voxelspacing?). function is a python
+            function handle, kwargs a dictionary of named parameters, and
+            voxelspacing? a boolean stating if the image's voxelspacing must be
+            passed as an additional parameter.
         segmentation_file (str): the target segmentation file
         probability_file (str): the target probability file
     """
 
-    features = load_feature_config(feature_config_file)
     feature_filenames = get_feature_filenames(features)
-    
+
     # loading case features
     feature_vector = []
     for filename in feature_filenames:
