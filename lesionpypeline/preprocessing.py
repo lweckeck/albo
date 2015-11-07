@@ -289,7 +289,7 @@ def standardize_intensityrange(in_file, mask_file, model_file):
     log.debug('standardize_intensityrange called with parameters:\n'
               '\tin_file = {}\n'
               '\tmask_file = {}\n'
-              '\tmodel_file'.format(in_file, mask_file, model_file))
+              '\tmodel_file = {}'.format(in_file, mask_file, model_file))
     _irs = mem.PipeFunc(
         lesionpypeline.interfaces.medpy.MedpyIntensityRangeStandardization,
         config.conf['pipeline']['cache_dir'])
