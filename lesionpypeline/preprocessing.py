@@ -261,7 +261,7 @@ def correct_biasfield(in_file, mask_file):
 
     result_bfc = _bfc(in_file=in_file, mask_file=mask_file)
     result_mmd = _mod_metadata(in_file=result_bfc.outputs.out_file,
-                               tasks=['qf=aff', 'sf=aff', 'qfc=1', 'sfc=1'])
+                               tasks=config.conf['tasks'])
 
     return result_mmd.outputs.out_file
 

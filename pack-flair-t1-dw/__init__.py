@@ -1,14 +1,34 @@
-####
-# Configuration file: Denotes the features to extract
-# Formatted as a dictionary with sequences as keys and lists of tuples (function, args, voxelspacing) as values, where function is the
-# feature extraction function, args a dictionary containing the function parameters, and voxelspacing a boolean indicating
-# if the respective voxelspacing needs to be passed to the function.
-####
 
-from medpy.features.intensity import intensities, centerdistance, centerdistance_xdminus1, local_mean_gauss, local_histogram
-from medpy.features.intensity import indices as indices_feature
+sequences = ['flair_tra', 'dw_tra_b1000_dmean', 't1_sag_tfe']
+presumed_performance = 9000.1
 
-features_to_extract = [
+# target pixel spacing
+pixel_spacing = [3, 3, 3]
+
+# sequence to be resampled to target pixel spacing; other sequences are then
+# registered to this sequence
+registration_base = 'flair_tra'
+
+# sequence to perform skullstripping on; resulting mask is applied to remaining
+# sequences
+skullstripping_base = 't1_sag_tfe'
+
+# tasks for metadata correction
+# tasks = ['qf=aff', 'sf=aff', 'qfc=1', 'sfc=1']
+tasks = []
+
+intensity_model_flair_tra = 'intensity_model_flair_tra.pkl'
+intensity_model_dw_tra_b1000_dmean = 'intensity_model_dw_tra_b1000_dmean.pkl'
+intensity_model_t1_sag_tfe = 'intensity_model_t1_sag_tfe.pkl'
+
+feature_config_file = 'featureconfig.py'
+# pickled, gzipped RDF sklearn RDF expected
+classifier_file = 'forest.pklz'
+
+from medpy.features.intensity import (intensities, centerdistance_xdminus1,
+                                      local_mean_gauss, local_histogram)
+
+features = [
     ('flair_tra', intensities, dict(), False),
     ('flair_tra', local_mean_gauss, dict(sigma=3), True),
     ('flair_tra', local_mean_gauss, dict(sigma=5), True),
