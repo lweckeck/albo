@@ -89,6 +89,16 @@ def process_case(case_dir):
     if not os.path.isdir(case_output_dir):
         os.makedirs(case_output_dir)
 
+    # -- preprocessed files
+    for key in preprocessed_sequences:
+        path = preprocessed_sequences[key]
+        _, tail = os.path.split(path)
+        out_path = os.path.join(case_output_dir, "preprocessed_"+tail)
+        if os.path.isfile(out_path):
+            os.remove(out_path)
+        shutil.copy2(path, out_path)
+
+    # -- segmentation results
     for path, filename in [(segmentation, 'segmentation.nii.gz'),
                            (probability, 'probability.nii.gz')]:
         out_path = os.path.join(case_output_dir, filename)
