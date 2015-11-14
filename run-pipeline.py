@@ -5,6 +5,7 @@ import os
 import sys
 import shutil
 import argparse
+import datetime
 
 import lesionpypeline.log as logging
 import lesionpypeline.config as config
@@ -30,15 +31,25 @@ def main():
                         '(default: pipeline.conf')
     parser.add_argument('--pack', '-p', type=str, required=True,
                         help='path to classifier pack folder')
+    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
     config.read_file(args.config)
     config.read_module(args.pack)
 
-    logging.set_global_level(config.conf['log']['level'])
-    logging.set_nipype_level(config.conf['log']['nipype_level'])
-    if config.conf['log']['file'] is not None:
-        logging.set_global_log_file(config.conf['log']['file'])
+    if args.debug:
+        logging.set_global_level(logging.DEBUG)
+        logging.set_nipype_level(logging.DEBUG)
+    elif args.verbose:
+        logging.set_global_level(logging.INFO)
+        logging.set_nipype_level(logging.INFO)
+    else:
+        logging.set_global_level(logging.INFO)
+        logging.set_nipype_level(logging.WARNING)
+
+    now = datetime.datetime.now()
+    logging.set_global_log_file(now.strftime('%Y-%m-%d_%H%M%S.log'))
 
     case_list = list()
     for directory in args.directories:
