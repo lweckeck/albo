@@ -19,14 +19,16 @@ SEQUENCE_FILE_EXT = '.nii.gz'
 
 def main():
     """Read parameters from console and run pipeline accordingly."""
+    executable_dir, _ = os.path.split(sys.argv[0])
     parser = argparse.ArgumentParser(description='Run the lesion detection'
                                      ' pipeline.')
     parser.add_argument('directories', nargs='*', type=str, metavar='dir',
                         help='collect sequence files from given case folders')
-    parser.add_argument('--config', '-c', type=str, default='./pipeline.conf',
-                        help='pipeline configuration file'
-                        ' (default: ./pipeline.conf')
-    parser.add_argument('--pack', '-p', type=str,
+    parser.add_argument('--config', '-c', type=str,
+                        default=os.path.join(executable_dir, 'pipeline.conf'),
+                        help='pipeline configuration file '
+                        '(default: pipeline.conf')
+    parser.add_argument('--pack', '-p', type=str, required=True,
                         help='path to classifier pack folder')
     args = parser.parse_args()
 
