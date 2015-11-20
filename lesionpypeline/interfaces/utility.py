@@ -1,15 +1,15 @@
+""""""
+from __future__ import absolute_import
 
 import os
 import numpy
 import shutil
 
 import nipype.interfaces.base as base
+import medpy.io as mio
 
 import lesionpypeline.niftimodifymetadata as nmmd
 
-# does not work for some reason ("Import error: No module named io"), replaced
-# with nmmd.mio since import works there
-# import medpy.io as mio
 
 
 class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
@@ -68,11 +68,11 @@ class CondenseOutliers(base.BaseInterface):
         in_file = self.inputs.in_file
         out_file = self.inputs.out_file
 
-        image, header = nmmd.mio.load(in_file)
+        image, header = mio.load(in_file)
         lower, upper = numpy.percentile(image, (1, 99.9))
         image[image < lower] = lower
         image[image > upper] = upper
-        nmmd.mio.save(image, out_file, header)
+        mio.save(image, out_file, header)
 
         return runtime
 
@@ -110,11 +110,11 @@ class ApplyMask(base.BaseInterface):
         mask_file = self.inputs.mask_file
         out_file = self.inputs.out_file
 
-        image, header = nmmd.mio.load(in_file)
-        mask, _ = nmmd.mio.load(mask_file)
+        image, header = mio.load(in_file)
+        mask, _ = mio.load(mask_file)
 
         image[~(mask.astype(numpy.bool))] = 0
-        nmmd.mio.save(image, out_file, header)
+        mio.save(image, out_file, header)
 
         return runtime
 
