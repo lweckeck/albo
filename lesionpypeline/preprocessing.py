@@ -147,8 +147,10 @@ def register(moving_image, fixed_image):
                        parameters=parameters.split(','),
                        terminal_output='none')
     # elastix gives the same name to all warped files; restore original
-    # name for clarity
+    # name for clarity, changing the file extension if necessary
     oldpath, oldname = os.path.split(moving_image)
+    if oldname.endswith('.nii'):
+        oldname += '.gz'
     newpath, newname = os.path.split(result.outputs.warped_file)
     warped_file = os.path.join(newpath, oldname)
 

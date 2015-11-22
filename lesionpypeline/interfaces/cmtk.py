@@ -24,8 +24,10 @@ class MRBias(base.CommandLine):
 
     def _gen_filename(self, name):
         if name == 'out_file':
-            head, tail = os.path.split(self.inputs.in_file)
-            return os.path.join(os.getcwd(), tail)
+            filename = os.path.basename(self.inputs.in_file)
+            if filename.endswith('.nii'):
+                filename += '.gz'
+            return os.path.join(os.getcwd(), filename)
 
     def _list_outputs(self):
         outputs = self.output_spec().get()
