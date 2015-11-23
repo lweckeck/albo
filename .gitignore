@@ -1,10 +1,7 @@
-# classifier files
+# Project specific
 classifiers/*.pklz
 classifiers/*.py
-
-# output files
-*.dot
-*.png
+test*.sh
 *.nii.gz
 out/
 cache/
