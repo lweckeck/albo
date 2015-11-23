@@ -1,3 +1,7 @@
+# classifier files
+classifiers/*.pklz
+classifiers/*.py
+
 # output files
 *.dot
 *.png
