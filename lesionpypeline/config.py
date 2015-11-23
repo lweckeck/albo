@@ -68,3 +68,8 @@ def read_module(path):
                 if os.path.isfile(value_path):
                     value = os.path.abspath(value_path)
             conf[key] = value
+
+def read_imported_module(module):
+    for key in vars(module):
+        if not key.startswith('__'):
+            conf[key] = vars(module)[key]

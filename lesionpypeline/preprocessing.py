@@ -37,12 +37,9 @@ def preprocess(sequences):
         raise ValueError('The configured skullstripping base sequence {} is'
                          ' not availabe in the current case: {}'
                          .format(fixed_image_key, sequences.keys()))
-    intensity_models = dict()
+    intensity_models = config.conf['intensity_models']
     for key in sequences:
-        try:
-            model_key = 'intensity_model_' + key
-            intensity_models[key] = config.conf[model_key]
-        except KeyError:
+        if key not in intensity_models:
             raise KeyError('No intensity model for sequence {} configured in'
                            ' classifier pack!'.format(key))
 
