@@ -1,15 +1,21 @@
-""""""
+"""Load classifiers files and choose best classifier for given sequences."""
 
-import os
 import importlib
 
-_modulenames = [m.replace('.py', '')
-                for m in os.listdir(os.path.dirname(__file__))
-                if m.endswith('.py')]
+_classifier_modules = [
+    'ISLES_SISS_flair',
+    'ISLES_SISS_flair_dwi',
+    'ISLES_SISS_flair_t1',
+    'ISLES_SISS_flair_t1_dwi',
+    'ISLES_SISS_flair_t1_t2',
+    'ISLES_SISS_flair_t1_t2_dwi',
+    'ISLES_SISS_flair_t2',
+    'ISLES_SISS_flair_t2_dwi',
+    'forest'
+]
 
 classifiers = [importlib.import_module('.'+m, __package__)
-               for m in _modulenames
-               if '__init__' not in m]
+               for m in _classifier_modules]
 
 
 def best_classifier(present_sequences):
@@ -26,3 +32,11 @@ def best_classifier(present_sequences):
                           key=(lambda x:
                                len(set(x.sequences) & set(present_sequences))))
     return best_classifier
+
+
+def print_available_classifiers():
+    """Print the module names and sequences of all available classifiers."""
+    for c in classifiers:
+        name_str = c.__name__
+        sequences_str = ', '.join(c.sequences)
+        print name_str + ': ' + sequences_str
