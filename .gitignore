@@ -1,5 +1,6 @@
 # Project specific
 classifiers/*.pklz
+classifiers/*.pkl
 classifiers/*.py
 test*.sh
 *.nii.gz
