@@ -39,4 +39,5 @@ def print_available_classifiers():
     for c in classifiers:
         name_str = c.__name__
         sequences_str = ', '.join(c.sequences)
-        print name_str + ': ' + sequences_str
+        print name_str + ':'
+        print '\t' + sequences_str
