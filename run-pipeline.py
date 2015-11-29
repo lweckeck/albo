@@ -11,8 +11,8 @@ import classifiers
 import lesionpypeline.log as logging
 import lesionpypeline.config as config
 
-import lesionpypeline.preprocessing as pp
-import lesionpypeline.segmentation as seg
+import lesionpypeline.workflow as wf
+
 
 log = logging.get_logger(__name__)
 now = datetime.datetime.now()
@@ -37,6 +37,7 @@ def main():
         best_classifier = classifiers.best_classifier(sequences.keys())
     except ValueError as e:
         log.error(e.message)
+        classifiers.print_available_classifiers()
         sys.exit(1)
 
     if set(best_classifier.sequences) != set(sequences.keys()):
@@ -55,10 +56,9 @@ def main():
 
 def process_case(sequences):
     """Run pipeline for given sequences."""
-
     # -- run pipeline
-    preprocessed_sequences, brainmask = pp.preprocess(sequences)
-    segmentation, probability = seg.segment(preprocessed_sequences, brainmask)
+    preprocessed_sequences, brainmask = wf.preprocess(sequences)
+    segmentation, probability = wf.segment(preprocessed_sequences, brainmask)
 
     # -- store results
     output_dir = config.conf['pipeline']['output_dir']
@@ -77,6 +77,12 @@ def process_case(sequences):
         if os.path.isfile(out_path):
             os.remove(out_path)
         shutil.copy2(path, out_path)
+
+    # -- brainmask
+    out_path = os.path.join(case_output_dir, 'brainmask.nii.gz')
+    if os.path.isfile(out_path):
+        os.remove(out_path)
+    shutil.copy2(brainmask, out_path)
 
     # -- segmentation results
     for path, filename in [(segmentation, 'segmentation.nii.gz'),
