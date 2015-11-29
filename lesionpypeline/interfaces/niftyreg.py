@@ -61,7 +61,7 @@ class _AladinOutputSpec(base.TraitedSpec):
 
 
 class Aladin(base.CommandLine):
-    """Provides an interface for the reg_aladin program."""
+    """Interface for the reg_aladin program."""
 
     input_spec = _AladinInputSpec
     output_spec = _AladinOutputSpec
@@ -202,7 +202,7 @@ class _ResampleOutputSpec(base.TraitedSpec):
 
 
 class Resample(base.CommandLine):
-    """Provides an interface for the reg_resample program."""
+    """Interface for the reg_resample program."""
 
     input_spec = _ResampleInputSpec
     output_spec = _ResampleOutputSpec

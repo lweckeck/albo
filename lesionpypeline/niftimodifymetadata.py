@@ -2,6 +2,7 @@
 
 """
 Modifies a NifTi file's metadata in place.
+
 arg1: the image to modify
 arg2+: the changes to make in order of appearance
     qfc=x : set qform_code = x
@@ -22,6 +23,10 @@ import medpy.io as mio
 
 
 def nifti_modify_metadata(image_file, tasks):
+    """Modify metadata of image_file.
+
+    See module docstring for list of possible tasks.
+    """
     i, h = mio.load(image_file)
 
     for task in tasks:

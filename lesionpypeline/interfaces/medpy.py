@@ -1,8 +1,9 @@
+"""Nipype interfaces for some medpy programs."""
 import os
 import nipype.interfaces.base as base
 
 
-class MedpyResampleInputSpec(base.CommandLineInputSpec):
+class _MedpyResampleInputSpec(base.CommandLineInputSpec):
     in_file = base.File(desc='the input image', position=0, exists=True,
                         mandatory=True, argstr='%s')
     out_file = base.File(desc='the output image', position=1, argstr='%s',
@@ -12,14 +13,15 @@ class MedpyResampleInputSpec(base.CommandLineInputSpec):
         'e.g. 1.2,1.2,5.0', position=2, mandatory=True, argstr='%s')
 
 
-class MedpyResampleOutputSpec(base.TraitedSpec):
+class _MedpyResampleOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the output image', exists=True)
 
 
 class MedpyResample(base.CommandLine):
-    """Provides an interface for the medpy_resample.py script"""
-    input_spec = MedpyResampleInputSpec
-    output_spec = MedpyResampleOutputSpec
+    """Interface for the medpy_resample.py script."""
+
+    input_spec = _MedpyResampleInputSpec
+    output_spec = _MedpyResampleOutputSpec
     cmd = 'medpy_resample.py'
 
     def _list_outputs(self):
@@ -34,7 +36,7 @@ class MedpyResample(base.CommandLine):
             return os.path.join(os.getcwd(), tail)
 
 
-class MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
+class _MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
     in_file = base.File(desc='The image to transform', position=-1,
                         exists=True, mandatory=True, argstr='%s')
     out_dir = base.Directory(
@@ -57,13 +59,15 @@ class MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
     force = base.traits.Bool(desc='Overwrite existing files', argstr='-f')
 
 
-class MedpyIntensityRangeStandardizationOutputSpec(base.TraitedSpec):
+class _MedpyIntensityRangeStandardizationOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='The output image', exists=True)
 
 
 class MedpyIntensityRangeStandardization(base.CommandLine):
-    input_spec = MedpyIntensityRangeStandardizationInputSpec
-    output_spec = MedpyIntensityRangeStandardizationOutputSpec
+    """Interface for the medpy_intensity_range_standardization.py script."""
+
+    input_spec = _MedpyIntensityRangeStandardizationInputSpec
+    output_spec = _MedpyIntensityRangeStandardizationOutputSpec
     cmd = 'medpy_intensity_range_standardization.py'
 
     def _list_outputs(self):

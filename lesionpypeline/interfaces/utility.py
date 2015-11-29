@@ -1,4 +1,4 @@
-""""""
+"""Nipype interfaces for various utility functions."""
 from __future__ import absolute_import
 
 import os
@@ -11,8 +11,7 @@ import medpy.io as mio
 import lesionpypeline.niftimodifymetadata as nmmd
 
 
-
-class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
+class _NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to modify', exists=True,
                         mandatory=True)
     out_file = base.File(desc='the output image location', genfile=True)
@@ -20,13 +19,15 @@ class NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):
                                 'appearance', mandatory=True)
 
 
-class NiftiModifyMetadataOutputSpec(base.TraitedSpec):
+class _NiftiModifyMetadataOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the modified image', exists=True)
 
 
 class NiftiModifyMetadata(base.BaseInterface):
-    input_spec = NiftiModifyMetadataInputSpec
-    output_spec = NiftiModifyMetadataOutputSpec
+    """Correct nifti metadata."""
+
+    input_spec = _NiftiModifyMetadataInputSpec
+    output_spec = _NiftiModifyMetadataOutputSpec
 
     def _run_interface(self, runtime):
         if not base.isdefined(self.inputs.out_file):
@@ -47,19 +48,21 @@ class NiftiModifyMetadata(base.BaseInterface):
             return os.path.join(os.getcwd(), tail)
 
 
-class CondenseOutliersInputSpec(base.BaseInterfaceInputSpec):
+class _CondenseOutliersInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to threshold', exists=True,
                         mandatory=True)
     out_file = base.File(desc='the output image location', genfile=True)
 
 
-class CondenseOutliersOutputSpec(base.TraitedSpec):
+class _CondenseOutliersOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the modified image', exists=True)
 
 
 class CondenseOutliers(base.BaseInterface):
-    input_spec = CondenseOutliersInputSpec
-    output_spec = CondenseOutliersOutputSpec
+    """Condense outliers in an image."""
+
+    input_spec = _CondenseOutliersInputSpec
+    output_spec = _CondenseOutliersOutputSpec
 
     def _run_interface(self, runtime):
         if not base.isdefined(self.inputs.out_file):
@@ -87,20 +90,22 @@ class CondenseOutliers(base.BaseInterface):
             return os.path.join(os.getcwd(), tail)
 
 
-class ApplyMaskInputSpec(base.BaseInterfaceInputSpec):
+class _ApplyMaskInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(desc='the image file to apply the mask to',
                         exists=True, mandatory=True)
     mask_file = base.File(desc='the mask file')
     out_file = base.File(desc='the output image location')
 
 
-class ApplyMaskOutputSpec(base.TraitedSpec):
+class _ApplyMaskOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the masked image', exists=True)
 
 
 class ApplyMask(base.BaseInterface):
-    input_spec = ApplyMaskInputSpec
-    output_spec = ApplyMaskOutputSpec
+    """Apply a mask to an image."""
+
+    input_spec = _ApplyMaskInputSpec
+    output_spec = _ApplyMaskOutputSpec
 
     def _run_interface(self, runtime):
         if not base.isdefined(self.inputs.out_file):
@@ -140,7 +145,7 @@ class _InvertMaskOutputSpec(base.TraitedSpec):
 
 
 class InvertMask(base.BaseInterface):
-    """Nipype interface to invert a given binary mask."""
+    """Invert a given binary mask."""
 
     input_spec = _InvertMaskInputSpec
     output_spec = _InvertMaskOutputSpec

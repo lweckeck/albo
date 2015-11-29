@@ -1,9 +1,10 @@
+"""Nipype interface for CMTK MRBias program."""
 import os
 
 import nipype.interfaces.base as base
 
 
-class MRBiasInputSpec(base.CommandLineInputSpec):
+class _MRBiasInputSpec(base.CommandLineInputSpec):
     in_file = base.File(desc='the input image', exists=True, mandatory=True,
                         argstr='%s', position=-2)
     out_file = base.File(desc='the output image', argstr='%s', position=-1,
@@ -12,14 +13,15 @@ class MRBiasInputSpec(base.CommandLineInputSpec):
                           argstr='--mask %s')
 
 
-class MRBiasOutputSpec(base.TraitedSpec):
+class _MRBiasOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='the output image')
 
 
 class MRBias(base.CommandLine):
-    """Provides a minimal interface for the cmtk mrbias command"""
-    input_spec = MRBiasInputSpec
-    output_spec = MRBiasOutputSpec
+    """Minimal interface for the cmtk mrbias program."""
+
+    input_spec = _MRBiasInputSpec
+    output_spec = _MRBiasOutputSpec
     cmd = 'cmtk mrbias'
 
     def _gen_filename(self, name):
