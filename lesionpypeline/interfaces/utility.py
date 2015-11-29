@@ -127,3 +127,41 @@ class ApplyMask(base.BaseInterface):
         if name == 'out_file':
             head, tail = os.path.split(self.inputs.in_file)
             return os.path.join(os.getcwd(), tail)
+
+
+class _InvertMaskInputSpec(base.BaseInterfaceInputSpec):
+    in_file = base.File(desc='the mask to invert',
+                        exists=True, mandatory=True)
+    out_file = base.File(desc='the output mask location')
+
+
+class _InvertMaskOutputSpec(base.TraitedSpec):
+    out_file = base.File(desc='the inverted mask', exists=True)
+
+
+class InvertMask(base.BaseInterface):
+    """Nipype interface to invert a given binary mask."""
+
+    input_spec = _InvertMaskInputSpec
+    output_spec = _InvertMaskOutputSpec
+
+    def _run_interface(self, runtime):
+        if not base.isdefined(self.inputs.out_file):
+            self.inputs.out_file = self._gen_filename('out_file')
+
+        mask, header = mio.load(self.inputs.in_file)
+        inverted_mask = numpy.ones(mask.shape, numpy.uint8)
+        inverted_mask[mask.astype(numpy.bool)] = 0
+
+        mio.save(inverted_mask, self.inputs.out_file, header)
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_file'] = self.inputs.out_file
+        return outputs
+
+    def _gen_filename(self, name):
+        if name == 'out_file':
+            return os.path.abspath('inverted_' + os.path.basename(
+                self.inputs.in_file))
