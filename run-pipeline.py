@@ -125,6 +125,7 @@ def _setup_config(args, classifier):
         logging.set_nipype_level(logging.WARNING)
 
     logging.set_global_log_file(now.strftime('%Y-%m-%d_%H%M%S.log'))
+    logging.set_global_log_file('current.log')
 
 
 if __name__ == '__main__':
