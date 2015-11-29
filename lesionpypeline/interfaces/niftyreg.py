@@ -28,9 +28,9 @@ class _AladinInputSpec(base.CommandLineInputSpec):
                                    exists=True, argstr='-affFlirt %s')
     rmask_file = base.File(desc='Filename of a mask image in the reference '
                            'space', exists=True, argstr='-rmask %s')
-    lmask_file = base.File(desc='Filename of a mask image in the floating '
+    fmask_file = base.File(desc='Filename of a mask image in the floating '
                            'space. Only used when symmetric turned on',
-                           exists=True, argstr='-lmask %s')
+                           exists=True, argstr='-fmask %s')
     result_file = base.File(desc='Filename of the resampled image '
                             '[outputResult.nii]', argstr='-res %s')
     max_iterations = base.traits.Int(desc='Number of iterations per level [5]',
@@ -99,7 +99,7 @@ class _F3DInputSpec(base.CommandLineInputSpec):
         'from the FSL package)', exists=True, argstr='-affFlirt %s',
         xor=['in_affine', 'in_cpp'])
     in_cpp = base.File(
-        desc='Filename ofloatf control point grid input. The coarse spacing '
+        desc='Filename ofl control point grid input. The coarse spacing '
         'is defined by this file.', exists=True, argstr='-incpp %s',
         xor=['in_affine', 'in_affFlirt'])
     # output options
@@ -120,7 +120,14 @@ class _F3DInputSpec(base.CommandLineInputSpec):
     # spline options (not yet implemented)
     # objective function options (not yet implemented)
     # optimisation options (not yet implemented)
-    # F3D_SYM options (not yet implemented)
+    # F3D_SYM options
+    symmetric = base.traits.Bool(desc='Use symmetric approach', argstr='-sym')
+    fmask_file = base.File(desc='Filename of a mask image in the floating '
+                           'space. Only used when symmetric turned on',
+                           exists=True, argstr='-fmask %s')
+    inverse_consistency = base.traits.Float(
+        desc='Weight of the inverse consistency penalty term [0.01]',
+        argstr='-ic %f')
     # F3D2 options (not yet implemented)
     # other options (incomplete)
     verbose_off = base.traits.Bool(desc='Turn verbose off', argstr='-voff')
@@ -174,7 +181,7 @@ class _ResampleInputSpec(base.CommandLineInputSpec):
         desc='Filename of the control point grid image (from reg_f3d)',
         exists=True, mandatory=True, argstr='-cpp %s',
         xor=['in_affine', 'in_affFlirt', 'in_def'])
-    in_cpp = base.File(
+    in_def = base.File(
         desc='Filename of the deformation field image (from reg_transform)',
         exists=True, mandatory=True, argstr='-def %s',
         xor=['in_affine', 'in_affFlirt', 'in_cpp'])
@@ -183,7 +190,7 @@ class _ResampleInputSpec(base.CommandLineInputSpec):
         'outputResult.nii', desc='Filename of the resampled image '
         '[outputResult.nii]', argstr='-res %s', usedefault=True)
     # others
-    interpolation_order = base.Enum(
+    interpolation_order = base.traits.Enum(
         '0', '1', '3', '4', desc='Interpolation order (0, 1, 3, 4)[3] (0=NN, '
         '1=LIN; 3=CUB, 4=SINC)', argstr='-inter %s')
 
