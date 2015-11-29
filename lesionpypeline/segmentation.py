@@ -10,17 +10,6 @@ import lesionpypeline.interfaces.classification
 log = logging.get_logger(__name__)
 
 
-def segment(sequences, mask):
-    """Segment the lesions in the given images."""
-    log.info('Extracting features...')
-    features = extract_features(sequences, mask)
-
-    log.info('Applying classifier...')
-    segmentation_image, probability_image = apply_rdf(features, mask)
-
-    return segmentation_image, probability_image
-
-
 def extract_features(sequence_paths, mask_file):
     """Extract features from given images.
 
