@@ -1,4 +1,4 @@
-""""""
+"""Nipype interfaces for feature extraction and classification."""
 # necessary for correct import of medpy.io; otherwise python mistakes medpy.py
 # in this folder for the module
 from __future__ import absolute_import
@@ -8,14 +8,14 @@ import numpy
 import pickle
 import gzip
 
+import nipype
 import nipype.interfaces.base as base
-import nipype.interfaces.io as nio
-# import lesionpypeline.classify as cfy
 
 import medpy.io as mio
 import medpy.features.utilities as mutil
 import scipy.ndimage
 
+log = nipype.logging.getLogger('interface')
 
 PROBABILITY_THRESHOLD = 0.5
 """Threshold for binary segmentation, which is calculated from the
@@ -23,7 +23,7 @@ probabilistic segmentation.
 """
 
 
-class ExtractFeatureInputSpec(base.BaseInterfaceInputSpec):
+class _ExtractFeatureInputSpec(base.BaseInterfaceInputSpec):
     in_file = base.File(
         desc='The image to extract the feature from', mandatory=True,
         exists=True)
@@ -43,13 +43,15 @@ class ExtractFeatureInputSpec(base.BaseInterfaceInputSpec):
                          hash_files=False)
 
 
-class ExtractFeatureOutputSpec(base.TraitedSpec):
+class _ExtractFeatureOutputSpec(base.TraitedSpec):
     out_file = base.File(desc='The extracted feature as a numpy file.')
 
 
 class ExtractFeature(base.BaseInterface):
-    input_spec = ExtractFeatureInputSpec
-    output_spec = ExtractFeatureOutputSpec
+    """Extract features from an image."""
+
+    input_spec = _ExtractFeatureInputSpec
+    output_spec = _ExtractFeatureOutputSpec
 
     def _run_interface(self, runtime):
         if not base.isdefined(self.inputs.out_file):
@@ -58,6 +60,10 @@ class ExtractFeature(base.BaseInterface):
             self.inputs.pass_voxelspacing = False
         if not base.isdefined(self.inputs.kwargs):
             self.inputs.kwargs = dict()
+
+        log.info('Extracting feature {}({}) from {}'.format(
+            self.inputs.function.func_name, self.inputs.kwargs,
+            self.inputs.in_file))
 
         image, header = mio.load(self.inputs.in_file)
         kwargs = self.inputs.kwargs
@@ -89,7 +95,7 @@ class ExtractFeature(base.BaseInterface):
             return os.path.abspath(filename)
 
 
-class RDFClassifierInputSpec(base.BaseInterfaceInputSpec):
+class _RDFClassifierInputSpec(base.BaseInterfaceInputSpec):
     feature_files = base.traits.List(
         desc='List of feature files. Must be in the correct order!',
         trait=base.File(exists=True), mandatory=True)
@@ -103,7 +109,7 @@ class RDFClassifierInputSpec(base.BaseInterfaceInputSpec):
     probability_file = base.File(desc='the target probability file')
 
 
-class RDFClassifierOutputSpec(base.TraitedSpec):
+class _RDFClassifierOutputSpec(base.TraitedSpec):
     segmentation_file = base.File(
         desc='the file containing the resulting segmentation', exists=True)
     probability_file = base.File(
@@ -111,8 +117,10 @@ class RDFClassifierOutputSpec(base.TraitedSpec):
 
 
 class RDFClassifier(base.BaseInterface):
-    input_spec = RDFClassifierInputSpec
-    output_spec = RDFClassifierOutputSpec
+    """Apply a random decision forest (RDF) to a list of features."""
+
+    input_spec = _RDFClassifierInputSpec
+    output_spec = _RDFClassifierOutputSpec
 
     def _run_interface(self, runtime):
         if not base.isdefined(self.inputs.segmentation_file):
@@ -121,6 +129,10 @@ class RDFClassifier(base.BaseInterface):
         if not base.isdefined(self.inputs.probability_file):
             self.inputs.probability_file = self._gen_filename(
                 'probability_file')
+
+        log.info('Appling RDF {} to features {}'.format(
+            self.inputs.classifier_file,
+            map(os.path.basename, self.inputs.feature_files)))
 
         features = []
         for path in self.inputs.feature_files:
@@ -134,7 +146,8 @@ class RDFClassifier(base.BaseInterface):
         # load and apply the decision forest
         with gzip.open(self.inputs.classifier_file, 'r') as f:
             classifier = pickle.load(f)
-            prob_classification = classifier.predict_proba(feature_vector)[:, 1]
+            prob_classification = \
+                classifier.predict_proba(feature_vector)[:, 1]
             # equivalent to forest.predict
             bin_classification = prob_classification > PROBABILITY_THRESHOLD
 
