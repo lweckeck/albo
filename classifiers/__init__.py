@@ -1,21 +1,13 @@
 """Load classifiers files and choose best classifier for given sequences."""
 
+import os
 import importlib
 
-_classifier_modules = [
-    'ISLES_SISS_flair',
-    'ISLES_SISS_flair_dwi',
-    'ISLES_SISS_flair_t1',
-    'ISLES_SISS_flair_t1_dwi',
-    'ISLES_SISS_flair_t1_t2',
-    'ISLES_SISS_flair_t1_t2_dwi',
-    'ISLES_SISS_flair_t2',
-    'ISLES_SISS_flair_t2_dwi',
-    'forest'
-]
+_modules = [importlib.import_module('.'+m.replace('.py', ''), __package__)
+            for m in os.listdir(os.path.dirname(__file__))
+            if m.endswith('.py')]
 
-classifiers = [importlib.import_module('.'+m, __package__)
-               for m in _classifier_modules]
+classifiers = [m for m in _modules if 'sequences' in vars(m)]
 
 
 def best_classifier(present_sequences):
