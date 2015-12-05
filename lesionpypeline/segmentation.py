@@ -30,8 +30,8 @@ def extract_features(sequence_paths, mask_file):
               '\tmask_file = {}'.format(sequence_paths, mask_file))
     _extract_feature = mem.PipeFunc(
         lesionpypeline.interfaces.classification.ExtractFeature,
-        config.conf['pipeline']['cache_dir'])
-    feature_list = config.conf['features']
+        config.get().cache_dir)
+    feature_list = config.get().classifier.features
 
     results = [_extract_feature(
         in_file=sequence_paths[key], mask_file=mask_file, function=function,
@@ -64,8 +64,8 @@ def apply_rdf(feature_files, mask_file):
               '\tmask_file = {}'.format(feature_files, mask_file))
     _apply_rdf = mem.PipeFunc(
         lesionpypeline.interfaces.classification.RDFClassifier,
-        config.conf['pipeline']['cache_dir'])
-    classifier_file = config.conf['classifier_file']
+        config.get().cache_dir)
+    classifier_file = config.get().classifier.classifier_file
 
     result = _apply_rdf(classifier_file=classifier_file,
                         feature_files=feature_files, mask_file=mask_file)

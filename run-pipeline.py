@@ -109,14 +109,15 @@ def _parse_args():
                         '(default: pipeline.conf')
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--debug', action='store_true')
-
     return parser.parse_args()
 
 
 def _setup_config(args, classifier):
-    config.read_file(args.config)
-    config.read_imported_module(classifier)
+    # init config
+    config.get().read_config_file(args.config)
+    config.get().classifier = classifier
 
+    # setup logging
     if args.debug:
         logging.set_global_level(logging.DEBUG)
         logging.set_nipype_level(logging.DEBUG)

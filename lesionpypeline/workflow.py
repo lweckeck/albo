@@ -13,7 +13,7 @@ DWI_ID = 'dwi'
 
 def resample(sequences):
     """Resample and coregister the given set of sequences."""
-    fixed_image_key = config.conf['registration_base']
+    fixed_image_key = config.get().classifier.registration_base
     if fixed_image_key not in sequences:
         raise ValueError('The configured registration base sequence {} is not'
                          ' availabe in the current case: {}'
@@ -41,7 +41,7 @@ def resample(sequences):
 
 def skullstrip(sequences):
     """Perform skullstripping and mask sequences accordingly."""
-    skullstrip_base_key = config.conf['skullstripping_base']
+    skullstrip_base_key = config.get().classifier.skullstripping_base
     if skullstrip_base_key not in sequences:
         raise ValueError('The configured skullstripping base sequence {} is'
                          ' not availabe in the current case: {}'
@@ -62,11 +62,12 @@ def correct_biasfield(sequences, mask):
     result = dict(sequences)
     for key in result:
         result[key] = seq.correct_biasfield(result[key], mask)
+    return result
 
 
 def standardize_intensityrange(sequences, mask):
     """Standardize intensityrange for given sequences."""
-    intensity_models = config.conf['intensity_models']
+    intensity_models = config.get().classifier.intensity_models
     for key in sequences:
         if key not in intensity_models:
             raise KeyError('No intensity model for sequence {} configured in'

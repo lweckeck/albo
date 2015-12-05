@@ -35,9 +35,9 @@ def resample(in_file):
     log.debug('resample called with parameters:\n'
               '\tin_file = {}'.format(in_file))
     _resample = mem.PipeFunc(lesionpypeline.interfaces.medpy.MedpyResample,
-                             config.conf['pipeline']['cache_dir'])
+                             config.get().cache_dir)
     try:
-        spacing = map(float, config.conf['pixel_spacing'])
+        spacing = map(float, config.get().classifier.pixel_spacing)
     except ValueError:
         raise ValueError('The configured pixel spacing {} is invalid; must'
                          'be exactly 3 comma-separated numbers with a dot'
@@ -72,8 +72,8 @@ def register(moving_image, fixed_image):
               '\tmoving_image = {}\n'
               '\tfixed_image = {}'.format(moving_image, fixed_image))
     _register = mem.PipeFunc(nipype.interfaces.elastix.Registration,
-                             config.conf['pipeline']['cache_dir'])
-    parameters = config.conf['pipeline']['elastix_parameter_file']
+                             config.get().cache_dir)
+    parameters = config.get().options['elastix_parameter_file']
     result = _register(moving_image=moving_image,
                        fixed_image=fixed_image,
                        parameters=parameters.split(','),
@@ -113,7 +113,7 @@ def transform(moving_image, transform_file):
               '\tmoving_image = {}\n'
               '\ttransform = {}'.format(moving_image, transform_file))
     _transform = mem.PipeFunc(nipype.interfaces.elastix.ApplyWarp,
-                              config.conf['pipeline']['cache_dir'])
+                              config.get().cache_dir)
     result = _transform(moving_image=moving_image,
                         transform_file=transform_file)
     return result.outputs.warped_file
@@ -137,7 +137,7 @@ def skullstrip(in_file):
     log.debug('skullstrip called with parameters:\n'
               '\tin_file = {}'.format(in_file))
     _skullstrip = mem.PipeFunc(nipype.interfaces.fsl.BET,
-                               config.conf['pipeline']['cache_dir'])
+                               config.get().cache_dir)
     result = _skullstrip(in_file=in_file, mask=True, robust=True,
                          output_type='NIFTI_GZ')
     return result.outputs.mask_file
@@ -162,7 +162,7 @@ def apply_mask(in_file, mask_file):
               '\tin_file = {}\n'
               '\tmask_file = {}'.format(in_file, mask_file))
     _apply_mask = mem.PipeFunc(lesionpypeline.interfaces.utility.ApplyMask,
-                               config.conf['pipeline']['cache_dir'])
+                               config.get().cache_dir)
     result = _apply_mask(in_file=in_file, mask_file=mask_file)
     return result.outputs.out_file
 
@@ -188,14 +188,14 @@ def correct_biasfield(in_file, mask_file):
               '\tin_file = {}\n'
               '\tmask_file = {}'.format(in_file, mask_file))
     _bfc = mem.PipeFunc(lesionpypeline.interfaces.cmtk.MRBias,
-                        config.conf['pipeline']['cache_dir'])
+                        config.get().cache_dir)
     _mod_metadata = mem.PipeFunc(
         lesionpypeline.interfaces.utility.NiftiModifyMetadata,
-        config.conf['pipeline']['cache_dir'])
+        config.get().cache_dir)
 
     result_bfc = _bfc(in_file=in_file, mask_file=mask_file)
     result_mmd = _mod_metadata(in_file=result_bfc.outputs.out_file,
-                               tasks=config.conf['tasks'])
+                               tasks=config.get().classifier.tasks)
 
     return result_mmd.outputs.out_file
 
@@ -226,10 +226,10 @@ def standardize_intensityrange(in_file, mask_file, model_file):
               '\tmodel_file = {}'.format(in_file, mask_file, model_file))
     _irs = mem.PipeFunc(
         lesionpypeline.interfaces.medpy.MedpyIntensityRangeStandardization,
-        config.conf['pipeline']['cache_dir'])
+        config.get().cache_dir)
     _condense_outliers = mem.PipeFunc(
         lesionpypeline.interfaces.utility.CondenseOutliers,
-        config.conf['pipeline']['cache_dir'])
+        config.get().cache_dir)
 
     result_irs = _irs(in_file=in_file, out_dir='.',
                       mask_file=mask_file, lmodel=model_file)

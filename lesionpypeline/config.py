@@ -1,75 +1,111 @@
 """Provide global configuration to the lesionpypeline module."""
 import os
+import types
 import ConfigParser
-import importlib
 
-conf = dict()
+import lesionpypeline.log as logging
 
-CLASSIFIER_SECTION = 'classifier'
+log = logging.get_logger(__name__)
+config = None
 
 
-def read_file(path):
-    """Read configuration options from .conf file.
+def get():
+    """Return the global Config object."""
+    global config
+    if config is None:
+        config = _Config()
+    return config
 
-    Options are read with ConfigParser and stored in a dictonary, which
-    contains another dictionary for each section, such that options can be read
-    as follows:
-    > value = conf['section']['key']
 
-    When multiple files are read, the config is not overwritten but updated.
-    """
-    parser = ConfigParser.ConfigParser()
-    parser.read(path)
+class _Config():
+    _cache_dir = ''
+    _output_dir = ''
+    _classifier = None
 
-    # change working directory to config file location
-    cwd = os.getcwd()
-    config_dir, _ = os.path.split(path)
-    os.chdir(config_dir)
+    options = dict()
 
-    for section in parser.sections():
-        section_dict = dict()
-        for key, value in parser.items(section):
-            # if value is filename, convert to absolute path
-            if os.path.isfile(value):
-                value = os.path.abspath(value)
-            section_dict[key] = value
+    @property
+    def cache_dir(self):
+        if self._cache_dir is '':
+            log.warn('Cache directory uninitialized. Using default value: '
+                     './cache')
+            self._cache_dir = './cache'
+        return self._cache_dir
 
-        if section in conf.keys() and isinstance(conf[section], dict):
-            conf[section].update(section_dict)
+    @cache_dir.setter
+    def cache_dir(self, value):
+        if not os.path.isdir(value):
+            log.warn('Cache directory {} does not yet exist.'
+                     .format(value))
+        self._cache_dir = value
+
+    @property
+    def cache_dir(self):
+        if self._output_dir is '':
+            log.warn('Output directory uninitialized. Using default value: '
+                     './out')
+            self._output_dir = './cache'
+        return self._output_dir
+
+    @cache_dir.setter
+    def cache_dir(self, value):
+        if not os.path.isdir(value):
+            log.warn('Output directory {} does not yet exist.'
+                     .format(value))
+        self._output_dir = value
+
+    @property
+    def classifier(self):
+        if self._classifier is None:
+            raise ValueError('Classifier uninitialized!')
+        return self._classifier
+
+    @classifier.setter
+    def classifier(self, value):
+        if not isinstance(value, types.ModuleType):
+            raise TypeError('"{}" is an invalid type for property classifier, '
+                            'must be of type "module"!'.format(type(value)))
+        elif 'sequences' not in vars(value):
+            raise ValueError('{} has no attribute sequences, which is required'
+                             ' for classifier modules!')
         else:
-            conf[section] = section_dict
+            self._classifier = value
 
-    # restore working directory
-    os.chdir(cwd)
+    def read_config_file(self, path):
+        """Read configuration options from .conf file.
 
+        Options are read with ConfigParser and stored in the global
+        Config object. Values for cache_dir and output_dir are handled
+        specially, additional options are stored in the options
+        dict. Note that sections are not respected, i.e. if there are
+        two keys in different sections with the same name, one will be
+        overwritten.
 
-def read_module(path):
-    """Read configuration options from python module.
+        Example:
+        [section]
+        key=value
 
-    The given module is imported, and all contained variables are stored in the
-    conf dictionary with the given section_name, such that options can be read
-    as follows:
-    > value = conf['section_name']['key']
+        > value = Config().options['key']
+        """
+        parser = ConfigParser.ConfigParser()
+        parser.read(path)
 
-    """
-    normpath = os.path.normpath(path)
-    module_path, module_name = os.path.split(normpath)
-    module = importlib.import_module(module_name)
+        # change working directory to config file location
+        cwd = os.getcwd()
+        config_dir, _ = os.path.split(path)
+        os.chdir(config_dir)
 
-    # if module is given as folder with __init__.py
-    if os.path.isdir(normpath):
-        module_path = normpath
+        for section in parser.sections():
+            for key, value in parser.items(section):
+                # if value is filename, convert to absolute path
+                if os.path.isfile(value):
+                    value = os.path.abspath(value)
 
-    for key in vars(module):
-        if not key.startswith('__'):
-            value = vars(module)[key]
-            if isinstance(value, str):
-                value_path = os.path.join(module_path, value)
-                if os.path.isfile(value_path):
-                    value = os.path.abspath(value_path)
-            conf[key] = value
-
-def read_imported_module(module):
-    for key in vars(module):
-        if not key.startswith('__'):
-            conf[key] = vars(module)[key]
+                if key == 'cache_dir':
+                    self.cache_dir = value
+                elif key == 'output_dir':
+                    self.output_dir = value
+                else:
+                    self.options[key] = value
+        # restore working directory
+        os.chdir(cwd)
