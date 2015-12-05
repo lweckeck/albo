@@ -40,15 +40,17 @@ def main():
         classifiers.print_available_classifiers()
         sys.exit(1)
 
-    if set(best_classifier.sequences) != set(sequences.keys()):
+    relevant_sequences = {key: sequence for key, sequence in sequences.items()
+                          if key in best_classifier.sequences}
+    if set(relevant_sequences.keys()) != set(sequences.keys()):
         log.warning('The best available classifier will only use the subset {}'
                     ' of available sequences!'
-                    .format(best_classifier.sequences))
+                    .format(relevant_sequences.keys()))
 
     log.debug('sequences = {}'.format(repr(sequences)))
     log.debug('classifier = {}'.format(best_classifier))
     _setup(args, best_classifier)
-    process_case(sequences)
+    process_case(relevant_sequences)
 
     if os.path.isfile(logging.global_log_file):
         shutil.move(logging.global_log_file,
