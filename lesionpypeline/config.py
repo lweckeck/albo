@@ -34,24 +34,34 @@ class _Config():
 
     @cache_dir.setter
     def cache_dir(self, value):
+        # remove old value if emtpy directory
+        old = self._cache_dir
+        if os.path.isdir(old) and os.path.listdir(old) == []:
+            os.rmdir(old)
         if not os.path.isdir(value):
-            log.warn('Cache directory {} does not yet exist.'
+            log.warn('Cache directory {} does not yet exist. Creating...'
                      .format(value))
+            os.makedirs(value)
         self._cache_dir = value
 
     @property
-    def cache_dir(self):
+    def output_dir(self):
         if self._output_dir is '':
             log.warn('Output directory uninitialized. Using default value: '
                      './out')
-            self._output_dir = './cache'
+            self._output_dir = './out'
         return self._output_dir
 
-    @cache_dir.setter
-    def cache_dir(self, value):
+    @output_dir.setter
+    def output_dir(self, value):
+        # remove old value if emtpy directory
+        old = self._output_dir
+        if os.path.isdir(old) and os.path.listdir(old) == []:
+            os.rmdir(old)
         if not os.path.isdir(value):
-            log.warn('Output directory {} does not yet exist.'
+            log.warn('Output directory {} does not yet exist. Creating...'
                      .format(value))
+            os.makedirs(value)
         self._output_dir = value
 
     @property
