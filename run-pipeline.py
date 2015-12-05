@@ -23,6 +23,7 @@ SEQUENCE_FILE_EXT = '.nii.gz'
 def main():
     """Read parameters from console and run pipeline accordingly."""
     args = _parse_args()
+    _setup_logging(args.verbose, args.debug, args.id)
 
     sequences = dict()
     for s in args.sequence:
@@ -49,7 +50,7 @@ def main():
 
     log.debug('sequences = {}'.format(repr(sequences)))
     log.debug('classifier = {}'.format(best_classifier))
-    _setup(args, best_classifier)
+    _setup_config(args.config, args.id, args.force, best_classifier)
     process_case(relevant_sequences)
 
     if os.path.isfile(logging.global_log_file):
@@ -121,33 +122,33 @@ def _parse_args():
     return parser.parse_args()
 
 
-def _setup(args, classifier):
-    # setup logging
-    if args.debug:
-        logging.set_global_level(logging.DEBUG)
-        logging.set_nipype_level(logging.DEBUG)
-    elif args.verbose:
-        logging.set_global_level(logging.INFO)
-        logging.set_nipype_level(logging.INFO)
-    else:
-        logging.set_global_level(logging.INFO)
-        logging.set_nipype_level(logging.WARNING)
-
-    logging.set_global_log_file(args.id + '_incomplete.log')
-
-    # init config
-    config.get().read_config_file(args.config)
+def _setup_config(config_file, case_id, overwrite, classifier):
+    config.get().read_config_file(config_file)
     config.get().classifier = classifier
 
-    output_path = os.path.join(config.get().output_dir, args.id)
+    output_path = os.path.join(config.get().output_dir, case_id)
     if os.path.isdir(output_path) and os.listdir(output_path) != []:
-        if args.force:
+        if overwrite:
             shutil.rmtree(output_path)
         else:
             log.error('There already is an output directory for the given ID.'
                       ' Use --force/-f to override.')
             sys.exit(1)
     config.get().output_dir = output_path
+
+
+def _setup_logging(verbose, debug, case_id):
+    if debug:
+        logging.set_global_level(logging.DEBUG)
+        logging.set_nipype_level(logging.DEBUG)
+    elif verbose:
+        logging.set_global_level(logging.INFO)
+        logging.set_nipype_level(logging.INFO)
+    else:
+        logging.set_global_level(logging.INFO)
+        logging.set_nipype_level(logging.WARNING)
+
+    logging.set_global_log_file(case_id + '_incomplete.log')
 
 
 if __name__ == '__main__':
