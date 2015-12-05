@@ -57,8 +57,11 @@ def main():
 def process_case(sequences):
     """Run pipeline for given sequences."""
     # -- run pipeline
-    preprocessed_sequences, brainmask = wf.preprocess(sequences)
-    segmentation, probability = wf.segment(preprocessed_sequences, brainmask)
+    resampled = wf.resample(sequences)
+    skullstripped, brainmask = wf.skullstrip(resampled)
+    bfced = wf.correct_biasfield(skullstripped, brainmask)
+    preprocessed = wf.standardize_intensityrange(bfced, brainmask)
+    segmentation, probability = wf.segment(preprocessed, brainmask)
 
     # -- store results
     output_dir = config.conf['pipeline']['output_dir']
@@ -70,8 +73,8 @@ def process_case(sequences):
         os.makedirs(case_output_dir)
 
     # -- preprocessed files
-    for key in preprocessed_sequences:
-        path = preprocessed_sequences[key]
+    for key in preprocessed:
+        path = preprocessed[key]
         _, tail = os.path.split(path)
         out_path = os.path.join(case_output_dir, "preprocessed_"+tail)
         if os.path.isfile(out_path):

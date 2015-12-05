@@ -11,30 +11,13 @@ ADC_ID = 'adc'
 DWI_ID = 'dwi'
 
 
-def preprocess(sequences):
-    """Execute preprocessing pipeline.
-
-    The steps include resampling and registration to a given pixel spacing,
-    skullstripping, biasfield correction and intensityrange standardization.
-    """
-    # -- Preparation
+def resample(sequences):
+    """Resample and coregister the given set of sequences."""
     fixed_image_key = config.conf['registration_base']
-    skullstrip_base_key = config.conf['skullstripping_base']
-
     if fixed_image_key not in sequences:
         raise ValueError('The configured registration base sequence {} is not'
                          ' availabe in the current case: {}'
                          .format(fixed_image_key, sequences.keys()))
-    if skullstrip_base_key not in sequences:
-        raise ValueError('The configured skullstripping base sequence {} is'
-                         ' not availabe in the current case: {}'
-                         .format(fixed_image_key, sequences.keys()))
-    intensity_models = config.conf['intensity_models']
-    for key in sequences:
-        if key not in intensity_models:
-            raise KeyError('No intensity model for sequence {} configured in'
-                           ' classifier pack!'.format(key))
-
     result = dict(sequences)
     # -- Resampling
     log.info('Resampling...')
@@ -53,25 +36,48 @@ def preprocess(sequences):
             result[ADC_ID] = transform(result[ADC_ID], transform)
         else:
             result[ADC_ID] = seq.register(result[ADC_ID], fixed_image)
+    return result
 
-    # -- Skullstripping
+
+def skullstrip(sequences):
+    """Perform skullstripping and mask sequences accordingly."""
+    skullstrip_base_key = config.conf['skullstripping_base']
+    if skullstrip_base_key not in sequences:
+        raise ValueError('The configured skullstripping base sequence {} is'
+                         ' not availabe in the current case: {}'
+                         .format(skullstrip_base_key, sequences.keys()))
+    result = dict(sequences)
     log.info('Skullstripping...')
     mask = seq.skullstrip(result[skullstrip_base_key])
 
     for key in result:
         result[key] = seq.apply_mask(result[key], mask)
+    return result, mask
 
-    # -- Biasfield correction, intensityrange standardization
+
+def correct_biasfield(sequences, mask):
+    """Correct biasfied in given sequences."""
+    # -- Biasfield correction
     log.info('Biasfield correction...')
+    result = dict(sequences)
     for key in result:
         result[key] = seq.correct_biasfield(result[key], mask)
 
+
+def standardize_intensityrange(sequences, mask):
+    """Standardize intensityrange for given sequences."""
+    intensity_models = config.conf['intensity_models']
+    for key in sequences:
+        if key not in intensity_models:
+            raise KeyError('No intensity model for sequence {} configured in'
+                           ' classifier pack!'.format(key))
+
+    result = dict(sequences)
     log.info('Intensityrange standardization...')
     for key in result:
         result[key] = seq.standardize_intensityrange(
             result[key], mask, intensity_models[key])
-
-    return result, mask
+    return result
 
 
 def segment(sequences, mask):
