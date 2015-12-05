@@ -47,10 +47,14 @@ def main():
 
     log.debug('sequences = {}'.format(repr(sequences)))
     log.debug('classifier = {}'.format(best_classifier))
-    _setup_config(args, best_classifier)
+    _setup(args, best_classifier)
     process_case(sequences)
 
-    log.info('All done.')
+    if os.path.isfile(logging.global_log_file):
+        shutil.move(logging.global_log_file,
+                    os.path.join(config.get().output_dir,
+                                 args.id + '_sucessful.log'))
+    log.info('Done.')
     sys.exit()
 
 
@@ -108,17 +112,14 @@ def _parse_args():
                                              'pipeline.conf'),
                         help='pipeline configuration file '
                         '(default: pipeline.conf')
+    parser.add_argument('--force', '-f', action='store_true',
+                        help='overwrite output directory if already present')
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--debug', action='store_true')
     return parser.parse_args()
 
 
-def _setup_config(args, classifier):
-    # init config
-    config.get().read_config_file(args.config)
-    config.get().output_path += args.id
-    config.get().classifier = classifier
-
+def _setup(args, classifier):
     # setup logging
     if args.debug:
         logging.set_global_level(logging.DEBUG)
@@ -130,8 +131,21 @@ def _setup_config(args, classifier):
         logging.set_global_level(logging.INFO)
         logging.set_nipype_level(logging.WARNING)
 
-    logging.set_global_log_file(now.strftime('%Y-%m-%d_%H%M%S.log'))
-    logging.set_global_log_file('current.log')
+    logging.set_global_log_file(args.id + '_incomplete.log')
+
+    # init config
+    config.get().read_config_file(args.config)
+    config.get().classifier = classifier
+
+    output_path = os.path.join(config.get().output_dir, args.id)
+    if os.path.isdir(output_path) and os.listdir(output_path) != []:
+        if args.force:
+            shutil.rmtree(output_path)
+        else:
+            log.error('There already is an output directory for the given ID.'
+                      ' Use --force/-f to override.')
+            sys.exit(1)
+    config.get().output_dir = output_path
 
 
 if __name__ == '__main__':

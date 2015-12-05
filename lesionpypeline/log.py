@@ -10,17 +10,21 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 import nipype
 
 loggers = []
-global_log_level = INFO
 
 formatter = logging.Formatter(
     '%(levelname)s: %(message)s')
 file_formatter = logging.Formatter(
     '%(asctime)s %(name)s %(levelname)s:\n\t%(message)s')
+
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
+
 nipype_stream_handler = logging.StreamHandler()
 nipype_stream_handler.setFormatter(formatter)
+
 file_handler = None
+global_log_file = None
+
 
 for logger in nipype.logging.loggers.values():
     logger.propagate = False
@@ -62,10 +66,13 @@ def set_nipype_level(level):
 
 def set_global_log_file(path):
     """Redirect all logging to a file at the given location."""
-    global file_handler
+    global file_handler, global_log_file
+
+    global_log_file = path
     file_handler = logging.FileHandler(path)
     file_handler.setLevel(INFO)
     file_handler.setFormatter(file_formatter)
+
     for logger in loggers:
         logger.addHandler(file_handler)
     for logger in nipype.logging.loggers.values():
