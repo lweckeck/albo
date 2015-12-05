@@ -63,45 +63,46 @@ def process_case(sequences):
     preprocessed = wf.standardize_intensityrange(bfced, brainmask)
     segmentation, probability = wf.segment(preprocessed, brainmask)
 
-    # -- store results
-    output_dir = config.conf['pipeline']['output_dir']
-    #    case_name = os.path.normpath(case_dir).split(os.path.sep)[-1]
-    case_name = now.strftime('%Y-%m-%d_%H%M%S')
-    case_output_dir = os.path.join(output_dir, case_name)
-
-    if not os.path.isdir(case_output_dir):
-        os.makedirs(case_output_dir)
-
     # -- preprocessed files
     for key in preprocessed:
-        path = preprocessed[key]
-        _, tail = os.path.split(path)
-        out_path = os.path.join(case_output_dir, "preprocessed_"+tail)
-        if os.path.isfile(out_path):
-            os.remove(out_path)
-        shutil.copy2(path, out_path)
+        output(preprocessed[key])
 
     # -- brainmask
-    out_path = os.path.join(case_output_dir, 'brainmask.nii.gz')
-    if os.path.isfile(out_path):
-        os.remove(out_path)
-    shutil.copy2(brainmask, out_path)
+    output(brainmask, 'brainmask.nii.gz')
 
     # -- segmentation results
-    for path, filename in [(segmentation, 'segmentation.nii.gz'),
-                           (probability, 'probability.nii.gz')]:
-        out_path = os.path.join(case_output_dir, filename)
-        if os.path.isfile(out_path):
-            os.remove(out_path)
-        shutil.copy2(path, out_path)
+    output(segmentation, 'segmentation.nii.gz')
+    output(segmentation, 'probability.nii.gz')
+
+
+def output(filepath, save_as=None, prefix='', postfix=''):
+    """Copy given file to output folder.
+
+    If save_as is given, the file is saved with that name, otherwise the
+    original filename is kept. Prefix and postfix are added in any case, where
+    the postfix will be added between filename and file extension.
+    """
+    filename = save_as if save_as is not None else os.path.basename(filepath)
+
+    components = filename.split('.')
+    components[0] += postfix
+    filename = prefix + '.'.join(components)
+
+    out_path = os.path.join(config.get().output_dir, filename)
+    if os.path.isfile(out_path):
+        os.remove(out_path)
+    shutil.copy2(filepath, out_path)
 
 
 def _parse_args():
     parser = argparse.ArgumentParser(description='Run the lesion detection'
                                      ' pipeline.')
-    parser.add_argument('sequence', nargs='+', type=str,
-                        help='process sequences given as id:path, e.g. '
-                        'MR_Flair:path/to/file.nii.gz')
+    parser.add_argument('sequence', nargs='+', type=str, metavar="SEQID:PATH",
+                        help='process sequences given as <sequence id>:<path '
+                        'to file>, e.g. MR_Flair:path/to/file.nii.gz')
+    parser.add_argument('--id', '-i', type=str, required=True,
+                        help='use given string as case identifier, e.g. for'
+                        ' naming the ouput folder')
     parser.add_argument('--config', '-c', type=str,
                         default=os.path.join(os.path.dirname(__file__),
                                              'pipeline.conf'),
@@ -115,6 +116,7 @@ def _parse_args():
 def _setup_config(args, classifier):
     # init config
     config.get().read_config_file(args.config)
+    config.get().output_path += args.id
     config.get().classifier = classifier
 
     # setup logging
