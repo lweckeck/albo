@@ -17,7 +17,7 @@ def get():
     return config
 
 
-class _Config():
+class _Config(object):
     _cache_dir = ''
     _output_dir = ''
     _classifier = None
@@ -36,7 +36,7 @@ class _Config():
     def cache_dir(self, value):
         # remove old value if emtpy directory
         old = self._cache_dir
-        if os.path.isdir(old) and os.path.listdir(old) == []:
+        if os.path.isdir(old) and os.listdir(old) == []:
             os.rmdir(old)
         if not os.path.isdir(value):
             log.warn('Cache directory {} does not yet exist. Creating...'
@@ -56,7 +56,7 @@ class _Config():
     def output_dir(self, value):
         # remove old value if emtpy directory
         old = self._output_dir
-        if os.path.isdir(old) and os.path.listdir(old) == []:
+        if os.path.isdir(old) and os.listdir(old) == []:
             os.rmdir(old)
         if not os.path.isdir(value):
             log.warn('Output directory {} does not yet exist. Creating...'
