@@ -1,7 +1,0 @@
-* Tasks
-** TODO confirm and fix: broken spacing after biasfield correction
-After biasfield correction, the spacing seems to have reverted from (3,3,3) to the default values
-** TODO error handling
-extract_features: handle mismatch between featureconfig and provided image paths
-** TODO validity check of config file
-
