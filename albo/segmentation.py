@@ -1,11 +1,11 @@
 
 """Contains functions for segmenting lesions using a classifier."""
 
-import lesionpypeline.log as logging
-import lesionpypeline.config as config
+import albo.log as logging
+import albo.config as config
 import nipype.caching.memory as mem
 
-import lesionpypeline.interfaces.classification
+import albo.interfaces.classification
 
 log = logging.get_logger(__name__)
 
@@ -29,7 +29,7 @@ def extract_features(sequence_paths, mask_file):
               '\tsequence_paths = {}\n'
               '\tmask_file = {}'.format(sequence_paths, mask_file))
     _extract_feature = mem.PipeFunc(
-        lesionpypeline.interfaces.classification.ExtractFeature,
+        albo.interfaces.classification.ExtractFeature,
         config.get().cache_dir)
     feature_list = config.get().classifier.features
 
@@ -63,7 +63,7 @@ def apply_rdf(feature_files, mask_file):
               '\tfeature_files = {}\n'
               '\tmask_file = {}'.format(feature_files, mask_file))
     _apply_rdf = mem.PipeFunc(
-        lesionpypeline.interfaces.classification.RDFClassifier,
+        albo.interfaces.classification.RDFClassifier,
         config.get().cache_dir)
     classifier_file = config.get().classifier.classifier_file
 

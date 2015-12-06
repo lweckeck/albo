@@ -8,10 +8,10 @@ import argparse
 import datetime
 
 import classifiers
-import lesionpypeline.log as logging
-import lesionpypeline.config as config
+import albo.log as logging
+import albo.config as config
 
-import lesionpypeline.workflow as wf
+import albo.workflow as wf
 
 
 log = logging.get_logger(__name__)

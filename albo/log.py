@@ -1,4 +1,4 @@
-"""This module provides logging facilities for the lesionpypeline program.
+"""This module provides logging facilities for the albo program.
 
 The basis for this module is the logging module from the standard library.
 Added features are global setting of log level and easy setting of nipype log

@@ -1,9 +1,9 @@
-"""Provide global configuration to the lesionpypeline module."""
+"""Provide global configuration to the albo module."""
 import os
 import types
 import ConfigParser
 
-import lesionpypeline.log as logging
+import albo.log as logging
 
 log = logging.get_logger(__name__)
 config = None

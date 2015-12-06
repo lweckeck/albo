@@ -4,15 +4,15 @@ This module provides high-level functions for MRI sequence manipulation tasks.
 """
 import os
 
-import lesionpypeline.log as logging
-import lesionpypeline.config as config
+import albo.log as logging
+import albo.config as config
 import nipype.caching.memory as mem
 
 import nipype.interfaces.elastix
 import nipype.interfaces.fsl
-import lesionpypeline.interfaces.medpy
-import lesionpypeline.interfaces.cmtk
-import lesionpypeline.interfaces.utility
+import albo.interfaces.medpy
+import albo.interfaces.cmtk
+import albo.interfaces.utility
 
 log = logging.get_logger(__name__)
 
@@ -34,7 +34,7 @@ def resample(in_file):
     """
     log.debug('resample called with parameters:\n'
               '\tin_file = {}'.format(in_file))
-    _resample = mem.PipeFunc(lesionpypeline.interfaces.medpy.MedpyResample,
+    _resample = mem.PipeFunc(albo.interfaces.medpy.MedpyResample,
                              config.get().cache_dir)
     try:
         spacing = map(float, config.get().classifier.pixel_spacing)
@@ -161,7 +161,7 @@ def apply_mask(in_file, mask_file):
     log.debug('apply_mask called with parameters:\n'
               '\tin_file = {}\n'
               '\tmask_file = {}'.format(in_file, mask_file))
-    _apply_mask = mem.PipeFunc(lesionpypeline.interfaces.utility.ApplyMask,
+    _apply_mask = mem.PipeFunc(albo.interfaces.utility.ApplyMask,
                                config.get().cache_dir)
     result = _apply_mask(in_file=in_file, mask_file=mask_file)
     return result.outputs.out_file
@@ -187,10 +187,10 @@ def correct_biasfield(in_file, mask_file):
     log.debug('correct_biasfield called with parameters:\n'
               '\tin_file = {}\n'
               '\tmask_file = {}'.format(in_file, mask_file))
-    _bfc = mem.PipeFunc(lesionpypeline.interfaces.cmtk.MRBias,
+    _bfc = mem.PipeFunc(albo.interfaces.cmtk.MRBias,
                         config.get().cache_dir)
     _mod_metadata = mem.PipeFunc(
-        lesionpypeline.interfaces.utility.NiftiModifyMetadata,
+        albo.interfaces.utility.NiftiModifyMetadata,
         config.get().cache_dir)
 
     result_bfc = _bfc(in_file=in_file, mask_file=mask_file)
@@ -225,10 +225,10 @@ def standardize_intensityrange(in_file, mask_file, model_file):
               '\tmask_file = {}\n'
               '\tmodel_file = {}'.format(in_file, mask_file, model_file))
     _irs = mem.PipeFunc(
-        lesionpypeline.interfaces.medpy.MedpyIntensityRangeStandardization,
+        albo.interfaces.medpy.MedpyIntensityRangeStandardization,
         config.get().cache_dir)
     _condense_outliers = mem.PipeFunc(
-        lesionpypeline.interfaces.utility.CondenseOutliers,
+        albo.interfaces.utility.CondenseOutliers,
         config.get().cache_dir)
 
     result_irs = _irs(in_file=in_file, out_dir='.',

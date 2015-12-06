@@ -8,7 +8,7 @@ import shutil
 import nipype.interfaces.base as base
 import medpy.io as mio
 
-import lesionpypeline.niftimodifymetadata as nmmd
+import albo.niftimodifymetadata as nmmd
 
 
 class _NiftiModifyMetadataInputSpec(base.BaseInterfaceInputSpec):

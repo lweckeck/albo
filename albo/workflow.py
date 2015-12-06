@@ -1,8 +1,8 @@
 """Lesion segmentation workflow."""
-import lesionpypeline.log as logging
-import lesionpypeline.config as config
-import lesionpypeline.sequences as seq
-import lesionpypeline.segmentation as seg
+import albo.log as logging
+import albo.config as config
+import albo.sequences as seq
+import albo.segmentation as seg
 
 log = logging.get_logger(__name__)
 

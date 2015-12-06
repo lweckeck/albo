@@ -1,11 +1,11 @@
 """Functions for registering the lesion segmentation to a standard brain."""
 
-import lesionpypeline.log as logging
-import lesionpypeline.config as config
+import albo.log as logging
+import albo.config as config
 import nipype.caching.memory as mem
 
-import lesionpypeline.interfaces.utility
-import lesionpypeline.interfaces.niftyreg
+import albo.interfaces.utility
+import albo.interfaces.niftyreg
 
 log = logging.get_logger(__name__)
 
@@ -47,7 +47,7 @@ def register_affine(floating_image, reference_image, floating_mask=None):
     string
         Path to the resulting affine transform
     """
-    _register = mem.PipeFunc(lesionpypeline.interfaces.niftyreg.Aladin,
+    _register = mem.PipeFunc(albo.interfaces.niftyreg.Aladin,
                              config.get().cache_dir)
     kwargs = dict(flo_image=floating_image, ref_image=reference_image)
     if floating_mask is not None:
@@ -84,7 +84,7 @@ def register_freeform(floating_image, reference_image, floating_mask=None,
     string
         Path to the resulting control point grid transform
     """
-    _register = mem.PipeFunc(lesionpypeline.interfaces.niftyreg.F3D,
+    _register = mem.PipeFunc(albo.interfaces.niftyreg.F3D,
                              config.get().cache_dir)
     kwargs = {'flo_image': floating_image, 'ref_image': reference_image}
     if floating_mask is not None:
@@ -119,7 +119,7 @@ def resample(floating_image, reference_image, transform_file):
     string
         Path to the resampled image
     """
-    _resample = mem.PipeFunc(lesionpypeline.interfaces.niftyreg.Resample,
+    _resample = mem.PipeFunc(albo.interfaces.niftyreg.Resample,
                              config.get().cache_dir)
     result = _resample(
         flo_image=floating_image,
@@ -145,7 +145,7 @@ def invert_mask(mask):
     log.debug('invert_mask called with parameters:\n'
               'mask = {}'.format(mask))
 
-    _invert = mem.PipeFunc(lesionpypeline.interfaces.utility.InvertMask,
+    _invert = mem.PipeFunc(albo.interfaces.utility.InvertMask,
                            config.get().cache_dir)
     result = _invert(in_file=mask)
 
