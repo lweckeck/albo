@@ -6,11 +6,11 @@ import sys
 import shutil
 import argparse
 import datetime
+import pkg_resources
 
 import classifiers
 import albo.log as logging
 import albo.config as config
-
 import albo.workflow as wf
 
 
@@ -20,9 +20,8 @@ now = datetime.datetime.now()
 SEQUENCE_FILE_EXT = '.nii.gz'
 
 
-def main():
+def main(args):
     """Read parameters from console and run pipeline accordingly."""
-    args = _parse_args()
     _setup_logging(args.verbose, args.debug, args.id)
 
     sequences = dict()
@@ -101,9 +100,8 @@ def output(filepath, save_as=None, prefix='', postfix=''):
     shutil.copy2(filepath, out_path)
 
 
-def _parse_args():
-    parser = argparse.ArgumentParser(description='Run the lesion detection'
-                                     ' pipeline.')
+def add_arguments(parser):
+    """Add commandline arguments for this program to a given parser."""
     parser.add_argument('sequence', nargs='+', type=str, metavar="SEQID:PATH",
                         help='process sequences given as <sequence id>:<path '
                         'to file>, e.g. MR_Flair:path/to/file.nii.gz')
@@ -111,18 +109,18 @@ def _parse_args():
                         help='use given string as case identifier, e.g. for'
                         ' naming the ouput folder')
     parser.add_argument('--config', '-c', type=str,
-                        default=os.path.join(os.path.dirname(__file__),
-                                             'pipeline.conf'),
                         help='pipeline configuration file '
                         '(default: pipeline.conf')
     parser.add_argument('--force', '-f', action='store_true',
                         help='overwrite output directory if already present')
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--debug', action='store_true')
-    return parser.parse_args()
 
 
 def _setup_config(config_file, case_id, overwrite, classifier):
+    if config_file is None:
+        config_file = pkg_resources.resource_filename(
+            __name__, 'config/pipeline.conf')
     config.get().read_config_file(config_file)
     config.get().classifier = classifier
 
@@ -152,4 +150,8 @@ def _setup_logging(verbose, debug, case_id):
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(
+        description='Run the lesion detection pipeline.')
+    add_arguments(parser)
+    args = parser.parse_args()
+    main(args)

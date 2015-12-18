@@ -3,6 +3,7 @@
 This module provides high-level functions for MRI sequence manipulation tasks.
 """
 import os
+import pkg_resources
 
 import albo.log as logging
 import albo.config as config
@@ -73,7 +74,9 @@ def register(moving_image, fixed_image):
               '\tfixed_image = {}'.format(moving_image, fixed_image))
     _register = mem.PipeFunc(nipype.interfaces.elastix.Registration,
                              config.get().cache_dir)
-    parameters = config.get().options['elastix_parameter_file']
+    parameters = pkg_resources.resource_filename(
+        __name__, 'config/elastix_sequencespace_rigid_cfg.txt')
+    #parameters = config.get().options['elastix_parameter_file']
     result = _register(moving_image=moving_image,
                        fixed_image=fixed_image,
                        parameters=parameters.split(','),
