@@ -9,12 +9,16 @@ setup(
     version='0.1',
     description='Automatic lesion to brain region overlap computation',
 
-    packages=find_packages(),
+    packages=['albo', 'albo.interfaces'],
     entry_points={
         'console_scripts': ['albo = albo:main']
     },
 
-    install_requires=[],
+    install_requires=[
+        'MedPy>=0.2.2',
+        'nipype>=0.11.0',
+        'scikit-learn>=0.16.1',
+    ],
     package_data={'albo': ['config/*']},
 
     author='Lennart Weckeck',
