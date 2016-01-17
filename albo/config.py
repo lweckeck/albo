@@ -1,6 +1,5 @@
 """Provide global configuration to the albo module."""
 import os
-import types
 import ConfigParser
 
 import albo.log as logging
@@ -72,13 +71,6 @@ class _Config(object):
 
     @classifier.setter
     def classifier(self, value):
-        if not isinstance(value, types.ModuleType):
-            raise TypeError('"{}" is an invalid type for property classifier, '
-                            'must be of type "module"!'.format(type(value)))
-        elif 'sequences' not in vars(value):
-            raise ValueError('{} has no attribute sequences, which is required'
-                             ' for classifier modules!')
-        else:
             self._classifier = value
 
     def read_config_file(self, path):

@@ -8,7 +8,7 @@ import argparse
 import datetime
 import pkg_resources
 
-import classifiers
+import albo.classifiers as clf
 import albo.log as logging
 import albo.config as config
 import albo.workflow as wf
@@ -24,6 +24,7 @@ def main(args):
     """Read parameters from console and run pipeline accordingly."""
     _setup_logging(args.verbose, args.debug, args.id)
 
+    # parse sequence file paths
     sequences = dict()
     for s in args.sequence:
         identifier, path = s.split(':')
@@ -33,13 +34,16 @@ def main(args):
             sys.exit(1)
         sequences[identifier] = path
 
+    # determine best applicable classifier
+    classifiers = clf.load_classifiers_from(args.classifier_dir)
     try:
-        best_classifier = classifiers.best_classifier(sequences.keys())
+        best_classifier = clf.best_classifier(classifiers, sequences.keys())
     except ValueError as e:
         log.error(e.message)
-        classifiers.print_available_classifiers()
+        print classifiers
         sys.exit(1)
 
+    # remove sequences unused by the classifier
     relevant_sequences = {key: sequence for key, sequence in sequences.items()
                           if key in best_classifier.sequences}
     if set(relevant_sequences.keys()) != set(sequences.keys()):
@@ -47,8 +51,7 @@ def main(args):
                     ' of available sequences!'
                     .format(relevant_sequences.keys()))
 
-    log.debug('sequences = {}'.format(repr(sequences)))
-    log.debug('classifier = {}'.format(best_classifier))
+    # setup configuration and execute pipeline steps
     _setup_config(args.config, args.id, args.force, best_classifier)
     process_case(relevant_sequences)
 
@@ -111,6 +114,8 @@ def add_arguments(parser):
     parser.add_argument('--config', '-c', type=str,
                         help='pipeline configuration file '
                         '(default: pipeline.conf')
+    parser.add_argument('--classifier_dir', '-d', type=str,
+                        help='path to the directory to search for classifiers')
     parser.add_argument('--force', '-f', action='store_true',
                         help='overwrite output directory if already present')
     parser.add_argument('--verbose', '-v', action='store_true')
