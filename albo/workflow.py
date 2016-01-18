@@ -6,10 +6,6 @@ import albo.segmentation as seg
 
 log = logging.get_logger(__name__)
 
-# TODO insert correct names
-ADC_ID = 'adc'
-DWI_ID = 'dwi'
-
 
 def resample(sequences):
     """Resample and coregister the given set of sequences."""
@@ -23,19 +19,8 @@ def resample(sequences):
     log.info('Resampling...')
     fixed_image = seq.resample(result[fixed_image_key])
     result[fixed_image_key] = fixed_image
-    for key in (result.viewkeys()
-                - {fixed_image_key, ADC_ID, DWI_ID}):
+    for key in (result.viewkeys() - {fixed_image_key}):
         result[key], _ = seq.register(result[key], fixed_image)
-
-    # special case: adc is not registered to the fixed image. Instead, the
-    # transformation resulting from DWI_ID registration is applied.
-    if DWI_ID in result:
-        result[DWI_ID], transform = seq.register(result[DWI_ID], fixed_image)
-    if ADC_ID in result:
-        if transform is not None:
-            result[ADC_ID] = transform(result[ADC_ID], transform)
-        else:
-            result[ADC_ID] = seq.register(result[ADC_ID], fixed_image)
     return result
 
 
