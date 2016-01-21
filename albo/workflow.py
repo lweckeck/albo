@@ -1,15 +1,13 @@
 """Lesion segmentation workflow."""
 import albo.log as logging
-import albo.config as config
 import albo.sequences as seq
 import albo.segmentation as seg
 
 log = logging.get_logger(__name__)
 
 
-def resample(sequences):
+def resample(sequences, pixel_spacing, fixed_image_key):
     """Resample and coregister the given set of sequences."""
-    fixed_image_key = config.get().classifier.registration_base
     if fixed_image_key not in sequences:
         raise ValueError('The configured registration base sequence {} is not'
                          ' availabe in the current case: {}'
@@ -17,16 +15,15 @@ def resample(sequences):
     result = dict(sequences)
     # -- Resampling
     log.info('Resampling...')
-    fixed_image = seq.resample(result[fixed_image_key])
+    fixed_image = seq.resample(result[fixed_image_key], pixel_spacing)
     result[fixed_image_key] = fixed_image
     for key in (result.viewkeys() - {fixed_image_key}):
         result[key], _ = seq.register(result[key], fixed_image)
     return result
 
 
-def skullstrip(sequences):
+def skullstrip(sequences, skullstrip_base_key):
     """Perform skullstripping and mask sequences accordingly."""
-    skullstrip_base_key = config.get().classifier.skullstripping_base
     if skullstrip_base_key not in sequences:
         raise ValueError('The configured skullstripping base sequence {} is'
                          ' not availabe in the current case: {}'
@@ -40,23 +37,23 @@ def skullstrip(sequences):
     return result, mask
 
 
-def correct_biasfield(sequences, mask):
+def correct_biasfield(sequences, mask, metadata_corrections=[]):
     """Correct biasfied in given sequences."""
     # -- Biasfield correction
     log.info('Biasfield correction...')
     result = dict(sequences)
     for key in result:
-        result[key] = seq.correct_biasfield(result[key], mask)
+        result[key] = seq.correct_biasfield(
+            result[key], mask, metadata_corrections)
     return result
 
 
-def standardize_intensityrange(sequences, mask):
+def standardize_intensityrange(sequences, mask, intensity_models):
     """Standardize intensityrange for given sequences."""
-    intensity_models = config.get().classifier.intensity_models
     for key in sequences:
         if key not in intensity_models:
-            raise KeyError('No intensity model for sequence {} configured in'
-                           ' classifier pack!'.format(key))
+            raise KeyError(
+                'No intensity model for sequence {} present!'.format(key))
 
     result = dict(sequences)
     log.info('Intensityrange standardization...')
@@ -66,12 +63,13 @@ def standardize_intensityrange(sequences, mask):
     return result
 
 
-def segment(sequences, mask):
+def segment(sequences, mask, features, classifier_file):
     """Segment the lesions in the given images."""
     log.info('Extracting features...')
-    features = seg.extract_features(sequences, mask)
+    features = seg.extract_features(sequences, mask, features)
 
     log.info('Applying classifier...')
-    segmentation_image, probability_image = seg.apply_rdf(features, mask)
+    segmentation_image, probability_image = seg.apply_rdf(
+        features, mask, classifier_file)
 
     return segmentation_image, probability_image

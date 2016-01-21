@@ -18,7 +18,7 @@ import albo.interfaces.utility
 log = logging.get_logger(__name__)
 
 
-def resample(in_file):
+def resample(in_file, pixel_spacing):
     """Resample given image.
 
     The spacing is defined in the context's configuration file.
@@ -27,6 +27,8 @@ def resample(in_file):
     ----------
     in_file : string
         Path to the file to be resampled
+    pixel_spacing : string
+        Target pixel spacing as three comma-separated values.
 
     Returns
     -------
@@ -38,7 +40,7 @@ def resample(in_file):
     _resample = mem.PipeFunc(albo.interfaces.medpy.MedpyResample,
                              config.get().cache_dir)
     try:
-        spacing = map(float, config.get().classifier.pixel_spacing)
+        spacing = map(float, pixel_spacing)
     except ValueError:
         raise ValueError('The configured pixel spacing {} is invalid; must'
                          'be exactly 3 comma-separated numbers with a dot'
@@ -76,7 +78,7 @@ def register(moving_image, fixed_image):
                              config.get().cache_dir)
     parameters = pkg_resources.resource_filename(
         __name__, 'config/elastix_sequencespace_rigid_cfg.txt')
-    #parameters = config.get().options['elastix_parameter_file']
+    # parameters = config.get().options['elastix_parameter_file']
     result = _register(moving_image=moving_image,
                        fixed_image=fixed_image,
                        parameters=parameters.split(','),
@@ -170,7 +172,7 @@ def apply_mask(in_file, mask_file):
     return result.outputs.out_file
 
 
-def correct_biasfield(in_file, mask_file):
+def correct_biasfield(in_file, mask_file, metadata_corrections=[]):
     """Perform biasfield correction and metadata correction on an image.
 
     Biasfield correction is performed using the CMTK mrbias program.
@@ -198,7 +200,7 @@ def correct_biasfield(in_file, mask_file):
 
     result_bfc = _bfc(in_file=in_file, mask_file=mask_file)
     result_mmd = _mod_metadata(in_file=result_bfc.outputs.out_file,
-                               tasks=config.get().classifier.tasks)
+                               tasks=metadata_corrections)
 
     return result_mmd.outputs.out_file
 

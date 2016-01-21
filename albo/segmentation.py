@@ -10,7 +10,7 @@ import albo.interfaces.classification
 log = logging.get_logger(__name__)
 
 
-def extract_features(sequence_paths, mask_file):
+def extract_features(sequence_paths, mask_file, features):
     """Extract features from given images.
 
     Parameters
@@ -31,17 +31,16 @@ def extract_features(sequence_paths, mask_file):
     _extract_feature = mem.PipeFunc(
         albo.interfaces.classification.ExtractFeature,
         config.get().cache_dir)
-    feature_list = config.get().classifier.features
 
     results = [_extract_feature(
         in_file=sequence_paths[key], mask_file=mask_file, function=function,
         kwargs=kwargs, pass_voxelspacing=voxelspacing)
-        for key, function, kwargs, voxelspacing in feature_list]
+        for key, function, kwargs, voxelspacing in features]
 
     return [result.outputs.out_file for result in results]
 
 
-def apply_rdf(feature_files, mask_file):
+def apply_rdf(feature_files, mask_file, classifier_file):
     """Apply random decision forest algorithm to given feature set.
 
     Parameters
@@ -65,7 +64,6 @@ def apply_rdf(feature_files, mask_file):
     _apply_rdf = mem.PipeFunc(
         albo.interfaces.classification.RDFClassifier,
         config.get().cache_dir)
-    classifier_file = config.get().classifier.classifier_file
 
     result = _apply_rdf(classifier_file=classifier_file,
                         feature_files=feature_files, mask_file=mask_file)

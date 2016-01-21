@@ -53,7 +53,7 @@ def main(args):
 
     # setup configuration and execute pipeline steps
     _setup_config(args.config, args.id, args.force, best_classifier)
-    process_case(relevant_sequences)
+    process_case(relevant_sequences, best_classifier)
 
     if os.path.isfile(logging.global_log_file):
         shutil.move(logging.global_log_file,
@@ -63,14 +63,18 @@ def main(args):
     sys.exit()
 
 
-def process_case(sequences):
+def process_case(sequences, classifier):
     """Run pipeline for given sequences."""
     # -- run pipeline
-    resampled = wf.resample(sequences)
-    skullstripped, brainmask = wf.skullstrip(resampled)
+    resampled = wf.resample(
+        sequences, classifier.pixel_spacing, classifier.registration_base)
+    skullstripped, brainmask = wf.skullstrip(
+        resampled, classifier.skullstripping_base)
     bfced = wf.correct_biasfield(skullstripped, brainmask)
-    preprocessed = wf.standardize_intensityrange(bfced, brainmask)
-    segmentation, probability = wf.segment(preprocessed, brainmask)
+    preprocessed = wf.standardize_intensityrange(
+        bfced, brainmask, classifier.intensity_models)
+    segmentation, probability = wf.segment(
+        preprocessed, brainmask, classifier.features, classifier.classifier_file)
 
     # -- preprocessed files
     for key in preprocessed:
