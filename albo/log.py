@@ -5,6 +5,7 @@ Added features are global setting of log level and easy setting of nipype log
 level.
 """
 import logging
+import nipype.logging
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 import nipype
@@ -29,6 +30,19 @@ global_log_file = None
 for logger in nipype.logging.loggers.values():
     logger.propagate = False
     logger.addHandler(nipype_stream_handler)
+
+
+def init(verbose=False, debug=False):
+    """Initialize logging system."""
+    if debug:
+        set_global_level(logging.DEBUG)
+        set_nipype_level(logging.DEBUG)
+    elif verbose:
+        set_global_level(logging.INFO)
+        set_nipype_level(logging.INFO)
+    else:
+        set_global_level(logging.INFO)
+        set_nipype_level(logging.WARNING)
 
 
 def get_logger(name):

@@ -1,9 +1,58 @@
 """Lesion segmentation workflow."""
+import os
+import shutil
+
+import albo.config as config
 import albo.log as logging
 import albo.sequences as seq
 import albo.segmentation as seg
 
 log = logging.get_logger(__name__)
+
+
+def process_case(sequences, classifier):
+    """Run pipeline for given sequences."""
+    # -- run pipeline
+    resampled = resample(
+        sequences, classifier.pixel_spacing, classifier.registration_base)
+    skullstripped, brainmask = skullstrip(
+        resampled, classifier.skullstripping_base)
+    bfced = correct_biasfield(skullstripped, brainmask)
+    preprocessed = standardize_intensityrange(
+            bfced, brainmask, classifier.intensity_models)
+    segmentation, probability = segment(
+        preprocessed, brainmask, classifier.features,
+        classifier.classifier_file)
+
+    # -- preprocessed files
+    for key in preprocessed:
+        output(preprocessed[key])
+
+    # -- brainmask
+    output(brainmask, 'brainmask.nii.gz')
+
+    # -- segmentation results
+    output(segmentation, 'segmentation.nii.gz')
+    output(probability, 'probability.nii.gz')
+
+
+def output(filepath, save_as=None, prefix='', postfix=''):
+    """Copy given file to output folder.
+
+    If save_as is given, the file is saved with that name, otherwise the
+    original filename is kept. Prefix and postfix are added in any case, where
+    the postfix will be added between filename and file extension.
+    """
+    filename = save_as if save_as is not None else os.path.basename(filepath)
+
+    components = filename.split('.')
+    components[0] += postfix
+    filename = prefix + '.'.join(components)
+
+    out_path = os.path.join(config.get().output_dir, filename)
+    if os.path.isfile(out_path):
+        os.remove(out_path)
+    shutil.copy2(filepath, out_path)
 
 
 def resample(sequences, pixel_spacing, fixed_image_key):

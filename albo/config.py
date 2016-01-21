@@ -1,6 +1,5 @@
 """Provide global configuration to the albo module."""
 import os
-import ConfigParser
 
 import albo.log as logging
 
@@ -19,7 +18,7 @@ def get():
 class _Config(object):
     _cache_dir = ''
     _output_dir = ''
-    _classifier = None
+    _classifier_dir = None
 
     options = dict()
 
@@ -62,52 +61,3 @@ class _Config(object):
                      .format(value))
             os.makedirs(value)
         self._output_dir = value
-
-    @property
-    def classifier(self):
-        if self._classifier is None:
-            raise ValueError('Classifier uninitialized!')
-        return self._classifier
-
-    @classifier.setter
-    def classifier(self, value):
-            self._classifier = value
-
-    def read_config_file(self, path):
-        """Read configuration options from .conf file.
-
-        Options are read with ConfigParser and stored in the global
-        Config object. Values for cache_dir and output_dir are handled
-        specially, additional options are stored in the options
-        dict. Note that sections are not respected, i.e. if there are
-        two keys in different sections with the same name, one will be
-        overwritten.
-
-        Example:
-        [section]
-        key=value
-
-        > value = Config().options['key']
-        """
-        parser = ConfigParser.ConfigParser()
-        parser.read(path)
-
-        # change working directory to config file location
-        cwd = os.getcwd()
-        config_dir, _ = os.path.split(path)
-        os.chdir(config_dir)
-
-        for section in parser.sections():
-            for key, value in parser.items(section):
-                # if value is filename, convert to absolute path
-                if os.path.isfile(value):
-                    value = os.path.abspath(value)
-
-                if key == 'cache_dir':
-                    self.cache_dir = value
-                elif key == 'output_dir':
-                    self.output_dir = value
-                else:
-                    self.options[key] = value
-        # restore working directory
-        os.chdir(cwd)
