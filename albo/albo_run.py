@@ -85,7 +85,7 @@ def process_case(sequences, classifier):
 
     # -- segmentation results
     output(segmentation, 'segmentation.nii.gz')
-    output(segmentation, 'probability.nii.gz')
+    output(probability, 'probability.nii.gz')
 
 
 def output(filepath, save_as=None, prefix='', postfix=''):

@@ -45,7 +45,7 @@ class Classifier(object):
             self.skullstripping_base = module.skullstripping_base
 
             # self.metadata_correction_tasks = module.tasks
-            self.tasks = module.taskslsksks
+            self.tasks = module.tasks
             self.intensity_models = module.intensity_models
             self.classifier_file = module.classifier_file
 
