@@ -8,14 +8,22 @@ def load_classifiers_from(directory):
     if not os.path.isdir(directory):
         raise ValueError('{} is not a directory!'.format(directory))
 
+    def _abspath(x):
+        return os.path.join(directory, x)
+
     modules = [imp.load_source(name, path) for name, path in
-               [(fname.replace('.py', ''), os.path.join(directory, fname))
+               [(fname.replace('.py', ''), _abspath(fname))
                 for fname in os.listdir(directory)
                 if fname.endswith('.py')
                 if fname != '__init__.py']]
+    classifiers = [Classifier(m.__name__, m) for m in modules
+                   if 'sequences' in vars(m)]
 
-    return [Classifier(m.__name__, m) for m in modules
-            if 'sequences' in vars(m)]
+    subdirs = [d for d in map(_abspath, os.listdir(directory))
+               if os.path.isdir(_abspath(d))]
+    for subdir in subdirs:
+        classifiers.extend(load_classifiers_from(subdir))
+    return classifiers
 
 
 def best_classifier(classifiers, sequences):
@@ -31,11 +39,10 @@ def best_classifier(classifiers, sequences):
 
 
 class Classifier(object):
-    def __init__(
-            self,
-            name,
-            module
-    ):
+    """Represents a classifier with associated preprocessing information."""
+
+    def __init__(self, name, module):
+        """Create classifier from module."""
         try:
             self.name = name
             self.sequences = module.sequences
