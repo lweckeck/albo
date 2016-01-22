@@ -10,21 +10,6 @@ import albo.interfaces.niftyreg
 log = logging.get_logger(__name__)
 
 
-def register_to_standardbrain(segmentation_mask, t1):
-    """Register the given segmentation to a standard brain."""
-    # TODO replace with proper selection
-    standardbrain = '/home/lwe/Projects/lesion-segmentation-pipeline/LesionPypeline/standardbrain/avg152T1_masked.nii'
-
-    registration_mask = invert_mask(segmentation_mask)
-
-    _, affine = register_affine(t1, standardbrain, registration_mask)
-    _, cpp = register_freeform(t1, standardbrain, registration_mask, affine)
-    segmentation_standardbrain = resample(segmentation_mask, standardbrain,
-                                          cpp)
-
-    return segmentation_standardbrain
-
-
 def register_affine(floating_image, reference_image, floating_mask=None):
     """Register floating image to reference image.
 

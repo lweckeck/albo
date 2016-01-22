@@ -6,13 +6,14 @@ import albo.config as config
 import albo.log as logging
 import albo.sequences as seq
 import albo.segmentation as seg
+import albo.standardbrainregistration as sbr
 
 log = logging.get_logger(__name__)
 
 
 def process_case(sequences, classifier):
     """Run pipeline for given sequences."""
-    # -- run pipeline
+    # -- run preprocessing pipeline
     resampled = resample(
         sequences, classifier.pixel_spacing, classifier.registration_base)
     skullstripped, brainmask = skullstrip(
@@ -20,9 +21,18 @@ def process_case(sequences, classifier):
     bfced = correct_biasfield(skullstripped, brainmask)
     preprocessed = standardize_intensityrange(
             bfced, brainmask, classifier.intensity_models)
+    # -- perform image segmentation
     segmentation, probability = segment(
         preprocessed, brainmask, classifier.features,
         classifier.classifier_file)
+    # -- register lesion mask to standardbrain
+    if 'MR_T1' in sequences:
+        t1 = sequences['MR_T1']
+    elif 't1' in sequences:
+        t1 = sequences['t1']
+    else:
+        raise Exception('No t1 sequence found!')
+    standard_mask = register_to_standardbrain(segmentation, t1)
 
     # -- preprocessed files
     for key in preprocessed:
@@ -34,6 +44,7 @@ def process_case(sequences, classifier):
     # -- segmentation results
     output(segmentation, 'segmentation.nii.gz')
     output(probability, 'probability.nii.gz')
+    output(standard_mask, 'standard_segmentation.nii')
 
 
 def output(filepath, save_as=None, prefix='', postfix=''):
@@ -122,3 +133,17 @@ def segment(sequences, mask, features, classifier_file):
         features, mask, classifier_file)
 
     return segmentation_image, probability_image
+
+
+def register_to_standardbrain(segmentation_mask, t1):
+    """Register the given segmentation to a standard brain."""
+    # TODO replace with proper selection
+    standardbrain = '/home/lwe/Projects/lesion-pipeline/standardbrains/avg152T1.nii'
+
+    log.info('Standardbrain registration...')
+    _, affine = sbr.register_affine(t1, standardbrain)
+    _, cpp = sbr.register_freeform(t1, standardbrain, in_affine=affine)
+    segmentation_standardbrain = sbr.resample(
+        segmentation_mask, standardbrain, cpp)
+
+    return segmentation_standardbrain

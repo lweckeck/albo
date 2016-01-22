@@ -210,5 +210,5 @@ class Resample(base.CommandLine):
 
     def _list_outputs(self):
         outputs = self.output_spec().get()
-        outputs['result_file'] = self.inputs.result_file
+        outputs['result_file'] = os.path.abspath(self.inputs.result_file)
         return outputs
