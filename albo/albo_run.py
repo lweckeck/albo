@@ -23,7 +23,7 @@ def main(args):
     albo.update_from_config_file(args)
     logging.init(args.verbose, args.debug)
     logging.set_global_log_file(args.id + '_incomplete.log')
-    _setup_output_dir(args.out, args.id, args.force)
+    _setup_output_dir(args.output, args.id, args.force)
     config.get().cache_dir = os.path.abspath(args.cache)
 
     # determine best applicable classifier
@@ -95,7 +95,7 @@ def add_arguments(parser):
                         help='path to the directory to search for classifiers')
     parser.add_argument('--cache', type=str,
                         help='path to caching directory')
-    parser.add_argument('--out', '-o', type=str,
+    parser.add_argument('--output', '-o', type=str,
                         help='path to output directory')
     parser.add_argument('--force', '-f', action='store_true',
                         help='overwrite output directory if already present')

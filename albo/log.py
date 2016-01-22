@@ -5,7 +5,7 @@ Added features are global setting of log level and easy setting of nipype log
 level.
 """
 import logging
-import nipype.logging
+import nipype
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 import nipype

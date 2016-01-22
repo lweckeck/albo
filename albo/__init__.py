@@ -27,22 +27,22 @@ def update_from_config_file(args):
     in all values which are 'None', if there is a value given in the
     configuration file.
     """
-    if args.config_file is None:
+    if args.config is None:
         if os.path.isfile('~/.config/albo.conf'):
-            args.config_file = '~/.config/albo.conf'
+            args.config = '~/.config/albo.conf'
         else:
-            args.config_file = pkg_resources.resource_filename(
+            args.config = pkg_resources.resource_filename(
                 __name__, 'config/pipeline.conf')
 
     options = dict()
     parser = ConfigParser.ConfigParser()
-    parser.read(args.config_file)
+    parser.read(args.config)
     for section in parser.sections():
         for key, value in parser.items(section):
             if os.path.isfile(value) or os.path.isdir(value):
                 value = os.path.abspath(value)
             options[key] = value
 
-    for key, value in vars(args):
+    for key in vars(args):
         if vars(args)[key] is None:
             vars(args)[key] = options[key]
