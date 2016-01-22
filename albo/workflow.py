@@ -4,7 +4,7 @@ import shutil
 
 import albo.config as config
 import albo.log as logging
-import albo.sequences as seq
+import albo.preprocessing as pp
 import albo.segmentation as seg
 import albo.standardbrainregistration as sbr
 
@@ -75,10 +75,10 @@ def resample(sequences, pixel_spacing, fixed_image_key):
     result = dict(sequences)
     # -- Resampling
     log.info('Resampling...')
-    fixed_image = seq.resample(result[fixed_image_key], pixel_spacing)
+    fixed_image = pp.resample(result[fixed_image_key], pixel_spacing)
     result[fixed_image_key] = fixed_image
     for key in (result.viewkeys() - {fixed_image_key}):
-        result[key], _ = seq.register(result[key], fixed_image)
+        result[key], _ = pp.register(result[key], fixed_image)
     return result
 
 
@@ -90,10 +90,10 @@ def skullstrip(sequences, skullstrip_base_key):
                          .format(skullstrip_base_key, sequences.keys()))
     result = dict(sequences)
     log.info('Skullstripping...')
-    mask = seq.skullstrip(result[skullstrip_base_key])
+    mask = pp.skullstrip(result[skullstrip_base_key])
 
     for key in result:
-        result[key] = seq.apply_mask(result[key], mask)
+        result[key] = pp.apply_mask(result[key], mask)
     return result, mask
 
 
@@ -103,7 +103,7 @@ def correct_biasfield(sequences, mask, metadata_corrections=[]):
     log.info('Biasfield correction...')
     result = dict(sequences)
     for key in result:
-        result[key] = seq.correct_biasfield(
+        result[key] = pp.correct_biasfield(
             result[key], mask, metadata_corrections)
     return result
 
@@ -118,7 +118,7 @@ def standardize_intensityrange(sequences, mask, intensity_models):
     result = dict(sequences)
     log.info('Intensityrange standardization...')
     for key in result:
-        result[key] = seq.standardize_intensityrange(
+        result[key] = pp.standardize_intensityrange(
             result[key], mask, intensity_models[key])
     return result
 
