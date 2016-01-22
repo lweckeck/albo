@@ -28,6 +28,7 @@ def main(args):
 
     # determine best applicable classifier
     sequences = _parse_sequences(args.sequence)
+    stdbrain_sequence, stdbrain_path = _parse_standardbrain(args.standardbrain)
     classifiers = clf.load_classifiers_from(args.classifier_dir)
     best_classifier = clf.best_classifier(classifiers, sequences.keys())
     if best_classifier is None:
@@ -44,7 +45,8 @@ def main(args):
                     .format(relevant_sequences.keys()))
 
     # setup configuration and execute pipeline steps
-    wf.process_case(relevant_sequences, best_classifier)
+    wf.process_case(relevant_sequences, best_classifier,
+                    stdbrain_sequence, stdbrain_path)
 
     # move log file to output folder
     if os.path.isfile(logging.global_log_file):
@@ -80,6 +82,14 @@ def _parse_sequences(id_sequence_mappings):
     return sequences
 
 
+def _parse_standardbrain(id_path_mapping):
+    identifier, path = id_path_mapping.split(':')
+    if not os.path.isfile(path):
+        log.error('The path {} given for the standardbrain is not a file.'
+                  .format(path))
+    return identifier, path
+
+
 def add_arguments(parser):
     """Add commandline arguments for this program to a given parser."""
     parser.add_argument('sequence', nargs='+', type=str, metavar="SEQID:PATH",
@@ -93,6 +103,9 @@ def add_arguments(parser):
                         '(default: ~/.config/albo/albo.conf')
     parser.add_argument('--classifier_dir', '-d', type=str,
                         help='path to the directory to search for classifiers')
+    parser.add_argument('--standardbrain', '-s', type=str, metavar='SEQID:PATH',
+                        help='use given standardbrain, given as <sequence_id>:'
+                        '<path>, as reference image for registration.')
     parser.add_argument('--cache', type=str,
                         help='path to caching directory')
     parser.add_argument('--output', '-o', type=str,

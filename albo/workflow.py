@@ -11,7 +11,8 @@ import albo.standardbrainregistration as sbr
 log = logging.get_logger(__name__)
 
 
-def process_case(sequences, classifier):
+def process_case(sequences, classifier, standardbrain_sequence,
+                 standardbrain_path):
     """Run pipeline for given sequences."""
     # -- run preprocessing pipeline
     resampled = resample(
@@ -26,13 +27,8 @@ def process_case(sequences, classifier):
         preprocessed, brainmask, classifier.features,
         classifier.classifier_file)
     # -- register lesion mask to standardbrain
-    if 'MR_T1' in sequences:
-        t1 = sequences['MR_T1']
-    elif 't1' in sequences:
-        t1 = sequences['t1']
-    else:
-        raise Exception('No t1 sequence found!')
-    standard_mask = register_to_standardbrain(segmentation, t1)
+    standard_mask = register_to_standardbrain(
+        segmentation, standardbrain_path, sequences[standardbrain_sequence])
 
     # -- preprocessed files
     for key in preprocessed:
@@ -135,14 +131,12 @@ def segment(sequences, mask, features, classifier_file):
     return segmentation_image, probability_image
 
 
-def register_to_standardbrain(segmentation_mask, t1):
+def register_to_standardbrain(segmentation_mask, standardbrain, floating_image):
     """Register the given segmentation to a standard brain."""
-    # TODO replace with proper selection
-    standardbrain = '/home/lwe/Projects/lesion-pipeline/standardbrains/avg152T1.nii'
-
     log.info('Standardbrain registration...')
-    _, affine = sbr.register_affine(t1, standardbrain)
-    _, cpp = sbr.register_freeform(t1, standardbrain, in_affine=affine)
+    _, affine = sbr.register_affine(floating_image, standardbrain)
+    _, cpp = sbr.register_freeform(floating_image, standardbrain,
+                                   in_affine=affine)
     segmentation_standardbrain = sbr.resample(
         segmentation_mask, standardbrain, cpp)
 
