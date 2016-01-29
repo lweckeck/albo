@@ -17,6 +17,8 @@ setup(
     install_requires=[
         'MedPy>=0.2.2',
         'nipype>=0.11.0',
+        'numpy>=1.6.1',
+        'scipy>=0.9',
         'scikit-learn>=0.16.1',
     ],
     package_data={'albo': ['config/*']},
