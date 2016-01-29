@@ -54,6 +54,10 @@ class _MedpyIntensityRangeStandardizationInputSpec(base.CommandLineInputSpec):
         desc='Location of the pickled intensity range model to load. Activated'
         'application mode.', exists=True, mandatory=True,
         argstr='--load-model %s')
+    ignore = base.traits.Bool(
+        desc='Ignore possible loss of information during intensity transformation.'
+             ' Should only be used when you know what you are doing.',
+        argstr='--ignore')
     verbose = base.traits.Bool(desc='Verbose output', argstr='-v')
     debug = base.traits.Bool(desc='Display debug information', argst='-d')
     force = base.traits.Bool(desc='Overwrite existing files', argstr='-f')

@@ -3,6 +3,7 @@
 This module provides high-level functions for MRI sequence manipulation tasks.
 """
 import os
+import sys
 import pkg_resources
 
 import albo.log as logging
@@ -14,6 +15,7 @@ import nipype.interfaces.fsl
 import albo.interfaces.medpy
 import albo.interfaces.cmtk
 import albo.interfaces.utility
+
 
 log = logging.get_logger(__name__)
 
@@ -235,9 +237,24 @@ def standardize_intensityrange(in_file, mask_file, model_file):
     _condense_outliers = mem.PipeFunc(
         albo.interfaces.utility.CondenseOutliers,
         config.get().cache_dir)
-
-    result_irs = _irs(in_file=in_file, out_dir='.',
-                      mask_file=mask_file, lmodel=model_file)
+    try:
+        result_irs = _irs(in_file=in_file, out_dir='.',
+                          mask_file=mask_file, lmodel=model_file)
+    except RuntimeError as re:
+        if "InformationLossException" in re.message:
+            try:
+                result_irs = _irs(in_file=in_file, out_dir='.', ignore=True,
+                                  mask_file=mask_file, lmodel=model_file)
+                log.warn("Loss of information may have occured when transforming"
+                         " image {} to learned standard intensity space. Re-train"
+                         " model to avoid this.".format(in_file))
+            except RuntimeError as re2:
+                if "unrecognized arguments: --ignore" in re2.message:
+                    log.error(
+                        "Image {} can not be transformed to the learned "
+                        "standard intensity space without loss of information."
+                        " Please re-train intensity models.".format(in_file))
+                    sys.exit(1)
     result_co = _condense_outliers(
         in_file=result_irs.outputs.out_file)
 
