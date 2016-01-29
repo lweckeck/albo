@@ -6,6 +6,7 @@ test*.sh
 *.nii.gz
 out/
 cache/
+setuptools*.zip
 
 # temporary editor files
 *~
