@@ -1,6 +1,8 @@
 
 """Contains functions for segmenting lesions using a classifier."""
 
+import multiprocessing as mp
+
 import albo.log as logging
 import albo.config as config
 import nipype.caching.memory as mem
@@ -8,6 +10,14 @@ import nipype.caching.memory as mem
 import albo.interfaces.classification
 
 log = logging.get_logger(__name__)
+
+
+def _extract_feature(kwargs):
+    f = mem.PipeFunc(
+        albo.interfaces.classification.ExtractFeature,
+        config.get().cache_dir)
+    result = f(**kwargs)
+    return result.outputs.out_file
 
 
 def extract_features(sequence_paths, mask_file, features):
@@ -28,16 +38,14 @@ def extract_features(sequence_paths, mask_file, features):
     log.debug('extract_features called with parameters:\n'
               '\tsequence_paths = {}\n'
               '\tmask_file = {}'.format(sequence_paths, mask_file))
-    _extract_feature = mem.PipeFunc(
-        albo.interfaces.classification.ExtractFeature,
-        config.get().cache_dir)
 
-    results = [_extract_feature(
-        in_file=sequence_paths[key], mask_file=mask_file, function=function,
-        kwargs=kwargs, pass_voxelspacing=voxelspacing)
-        for key, function, kwargs, voxelspacing in features]
+    tasks = [dict(in_file=sequence_paths[key], mask_file=mask_file,
+                  function=function, kwargs=kwargs, pass_voxelspacing=vs)
+             for key, function, kwargs, vs in features]
+    pool = mp.Pool()
+    results = pool.map(_extract_feature, tasks)
 
-    return [result.outputs.out_file for result in results]
+    return results
 
 
 def apply_rdf(feature_files, mask_file, classifier_file):
