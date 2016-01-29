@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-"""TODO."""
+"""Script to run the albo pipeline."""
 
 import os
 import sys
 import shutil
 import argparse
 
-import albo
 import albo.classifiers as clf
 import albo.log as logging
 import albo.config as config
@@ -19,8 +18,7 @@ SEQUENCE_FILE_EXT = '.nii.gz'
 
 
 def main(args):
-    """Read parameters from console and run pipeline accordingly."""
-    albo.update_from_config_file(args)
+    """Run pipeline."""
     logging.init(args.verbose, args.debug)
     logging.set_global_log_file(args.id + '_incomplete.log')
     _setup_output_dir(args.output, args.id, args.force)
@@ -90,7 +88,7 @@ def _parse_standardbrain(id_path_mapping):
     return identifier, path
 
 
-def add_arguments(parser):
+def add_arguments_to(parser):
     """Add commandline arguments for this program to a given parser."""
     parser.add_argument('sequence', nargs='+', type=str, metavar="SEQID:PATH",
                         help='process sequences given as <sequence id>:<path '
@@ -119,6 +117,6 @@ def add_arguments(parser):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run the lesion detection pipeline.')
-    add_arguments(parser)
+    add_arguments_to(parser)
     args = parser.parse_args()
     main(args)
