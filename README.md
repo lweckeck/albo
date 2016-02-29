@@ -14,11 +14,11 @@ sudo apt-get install python-numpy python-scipy
 
 To run the pipeline, the following additional programs must be available from the commandline.
 
-Command | Debian package | Remark
+Command | Ubuntu package | Remark
 --------|----------------|-------
 `cmtk`  | cmtk | -
 `bet` | fsl | If it is only available as `fsl5.0-bet` or similar, add the line `source /etc/fsl/fsl.sh` to your `.bashrc` file
-`elastix` | elastix | -
+`elastix` | elastix | If not available in your package manager, download from https://launchpad.net/ubuntu/+source/elastix
 NiftyReg tools | n/a | See http://cmictig.cs.ucl.ac.uk/wiki/index.php/NiftyReg_install
 
 
@@ -41,4 +41,4 @@ albo run -id example-case MR_Flair:path/to/flair MR_T1:path/to/t1
 ```
 
 To list all available classifiers with the sequence identifiers they use, use
-`albo list`. 
+`albo list`.
