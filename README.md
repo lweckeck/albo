@@ -5,27 +5,29 @@ in the brain, based on MRI sequences. Given a set of MRI images, the lesion is
 automatically segmented and then registered to a standard brain. From there, the
 overlap with various brain regions can be calculated.
 
-## Installation
-Download and unpack the program and run
+## Prerequisites
+Before the installation, make sure numpy>=1.6.1 and scipy>=0.17 are installed.
+In Ubuntu, these programs can be installed from the package manager:
 ```
-python setup.py install
-```
-
-If the installation fails due to scipy complaining about missing header files,
-try running
-
-```
-sudo apt-get install python-dev gfortran cython liblapack-dev libatlas-dev
+sudo apt-get install python-numpy python-scipy
 ```
 
-To be able to run the pipeline, also make sure the following commands are available
-from your command-line.
+To run the pipeline, the following additional programs must be available from the commandline.
 
 Command | Debian package | Remark
 --------|----------------|-------
 `cmtk`  | cmtk | -
 `bet` | fsl | If it is only available as `fsl5.0-bet` or similar, add the line `source /etc/fsl/fsl.sh` to your `.bashrc` file
 `elastix` | elastix | -
+NiftyReg tools | n/a | See http://cmictig.cs.ucl.ac.uk/wiki/index.php/NiftyReg_install
+
+
+## Installation
+Make sure
+Download and unpack the program and run
+```
+python setup.py install
+```
 
 ## Basic usage
 
