@@ -27,24 +27,20 @@ def process_case(sequences, classifier, standardbrain_sequence,
     bfced = correct_biasfield(skullstripped, brainmask)
     preprocessed = standardize_intensityrange(
             bfced, brainmask, classifier.intensity_models)
+    for key in preprocessed:
+        output(preprocessed[key])
+    output(brainmask, 'brainmask.nii.gz')
+
     # -- perform image segmentation
     segmentation, probability = segment(
         preprocessed, brainmask, classifier.features,
         classifier.classifier_file)
+    output(segmentation, 'segmentation.nii.gz')
+    output(probability, 'probability.nii.gz')
+
     # -- register lesion mask to standardbrain
     standard_mask = register_to_standardbrain(
         segmentation, standardbrain_path, sequences[standardbrain_sequence])
-
-    # -- preprocessed files
-    for key in preprocessed:
-        output(preprocessed[key])
-
-    # -- brainmask
-    output(brainmask, 'brainmask.nii.gz')
-
-    # -- segmentation results
-    output(segmentation, 'segmentation.nii.gz')
-    output(probability, 'probability.nii.gz')
     output(standard_mask, 'standard_segmentation.nii')
 
 
