@@ -9,7 +9,7 @@ import argparse
 import albo.classifiers as clf
 import albo.log as logging
 import albo.config as config
-import albo.workflow as wf
+import albo.pipeline as ppl
 
 
 log = logging.get_logger(__name__)
@@ -43,8 +43,8 @@ def main(args):
                     .format(relevant_sequences.keys()))
 
     # setup configuration and execute pipeline steps
-    wf.process_case(relevant_sequences, best_classifier,
-                    stdbrain_sequence, stdbrain_path)
+    ppl.process_case(relevant_sequences, best_classifier,
+                     stdbrain_sequence, stdbrain_path)
 
     # move log file to output folder
     if os.path.isfile(logging.global_log_file):
