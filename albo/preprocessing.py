@@ -2,15 +2,12 @@
 
 This module provides high-level functions for MRI sequence manipulation tasks.
 """
-import os
 import sys
-import pkg_resources
 
 import albo.log as logging
 import albo.config as config
 import nipype.caching.memory as mem
 
-import nipype.interfaces.elastix
 import nipype.interfaces.fsl
 import albo.interfaces.medpy
 import albo.interfaces.cmtk
@@ -56,8 +53,7 @@ def resample(in_file, pixel_spacing):
 def register(moving_image, fixed_image):
     """Register moving image to fixed image.
 
-    Registration is performed using the elastix program. The path to the
-    elastix configuration file is configured in the pipeline config file.
+    Registration is performed using the fsl flirt program.
 
     Parameters
     ----------
@@ -76,54 +72,14 @@ def register(moving_image, fixed_image):
     log.debug('register called with parameters:\n'
               '\tmoving_image = {}\n'
               '\tfixed_image = {}'.format(moving_image, fixed_image))
-    _register = mem.PipeFunc(nipype.interfaces.elastix.Registration,
+    _register = mem.PipeFunc(nipype.interfaces.fsl.FLIRT,
                              config.get().cache_dir)
-    parameters = pkg_resources.resource_filename(
-        __name__, 'config/elastix_sequencespace_rigid_cfg.txt')
-    # parameters = config.get().options['elastix_parameter_file']
-    result = _register(moving_image=moving_image,
-                       fixed_image=fixed_image,
-                       parameters=parameters.split(','),
+    result = _register(in_file=moving_image,
+                       reference=fixed_image,
+                       cost='mutualinfo',
+                       cost_func='mutualinfo',
                        terminal_output='none')
-    # elastix gives the same name to all warped files; restore original
-    # name for clarity, changing the file extension if necessary
-    oldpath, oldname = os.path.split(moving_image)
-    if oldname.endswith('.nii'):
-        oldname += '.gz'
-    newpath, newname = os.path.split(result.outputs.warped_file)
-    warped_file = os.path.join(newpath, oldname)
-
-    # if the interface has run previously, the file is already renamed
-    if os.path.isfile(result.outputs.warped_file):
-        os.renames(result.outputs.warped_file, warped_file)
-
-    return (warped_file,
-            result.outputs.transform)
-
-
-def transform(moving_image, transform_file):
-    """Apply transfrom resulting from elastix registration to an image.
-
-    Parameters
-    ----------
-    moving_image : string
-        Path to the image to warp
-    transform_file : string
-        Path to the elastix transform to apply
-
-    Returns
-    -------
-    string
-        Path to the warped image
-    """
-    log.debug('tranform called with parameters:\n'
-              '\tmoving_image = {}\n'
-              '\ttransform = {}'.format(moving_image, transform_file))
-    _transform = mem.PipeFunc(nipype.interfaces.elastix.ApplyWarp,
-                              config.get().cache_dir)
-    result = _transform(moving_image=moving_image,
-                        transform_file=transform_file)
-    return result.outputs.warped_file
+    return result.outputs.out_file
 
 
 def skullstrip(in_file):

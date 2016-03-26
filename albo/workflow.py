@@ -74,7 +74,7 @@ def resample(sequences, pixel_spacing, fixed_image_key):
     fixed_image = pp.resample(result[fixed_image_key], pixel_spacing)
     result[fixed_image_key] = fixed_image
     for key in (result.viewkeys() - {fixed_image_key}):
-        result[key], _ = pp.register(result[key], fixed_image)
+        result[key] = pp.register(result[key], fixed_image)
     return result
 
 
