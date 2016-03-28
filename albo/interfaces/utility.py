@@ -170,3 +170,49 @@ class InvertMask(base.BaseInterface):
         if name == 'out_file':
             return os.path.abspath('inverted_' + os.path.basename(
                 self.inputs.in_file))
+
+
+class _InvertTransformationInputSpec(base.BaseInterfaceInputSpec):
+    in_file = base.File(desc='file containing the matrix to invert',
+                        exists=True, mandatory=True)
+    out_file = base.File(desc='the output matrix file location')
+
+
+class _InvertTransformationOutputSpec(base.TraitedSpec):
+    out_file = base.File(desc='the inverted matrix file', exists=True)
+
+
+class InvertTransformation(base.BaseInterface):
+    """Invert a given flirt ,mat file and convert to decimal, if necessary."""
+
+    input_spec = _InvertTransformationInputSpec
+    output_spec = _InvertTransformationOutputSpec
+
+    def _parse(self, token):
+        try:
+            result = float(token)
+        except ValueError:
+            result = float.fromhex(token)
+        return result
+
+    def _run_interface(self, runtime):
+        if not base.isdefined(self.inputs.out_file):
+            self.inputs.out_file = self._gen_filename('out_file')
+        s = open(self.inputs.in_file)
+        matrix = numpy.array([[self._parse(token)
+                              for token in line.split()]
+                              for line in s.readlines()])
+        inverted = numpy.linalg.inv(matrix)
+        numpy.savetxt(self.inputs.out_file, inverted)
+
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['out_file'] = self.inputs.out_file
+        return outputs
+
+    def _gen_filename(self, name):
+        if name == 'out_file':
+            return os.path.abspath('inverted_' + os.path.basename(
+                self.inputs.in_file))

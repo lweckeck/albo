@@ -12,6 +12,8 @@ import nipype.interfaces.fsl
 import albo.interfaces.medpy
 import albo.interfaces.cmtk
 import albo.interfaces.utility
+import albo.interfaces.classification
+import albo.interfaces.niftyreg
 
 log = logging.get_logger(__name__)
 
@@ -20,7 +22,7 @@ def process_case(sequences, classifier, standardbrain_sequence,
                  standardbrain_path):
     """Run pipeline for given sequences."""
     # -- run preprocessing pipeline
-    resampled = resample(
+    resampled, transforms = resample(
         sequences, classifier.pixel_spacing, classifier.registration_base)
     skullstripped, brainmask = skullstrip(
         resampled, classifier.skullstripping_base)
@@ -40,7 +42,8 @@ def process_case(sequences, classifier, standardbrain_sequence,
 
     # -- register lesion mask to standardbrain
     standard_mask = register_to_standardbrain(
-        segmentation, standardbrain_path, sequences[standardbrain_sequence])
+        segmentation, standardbrain_path, sequences[standardbrain_sequence],
+        transforms[standardbrain_sequence])
     output(standard_mask, 'standard_segmentation.nii')
 
 
@@ -82,6 +85,8 @@ def resample(sequences, pixel_spacing, fixed_image_key):
     spacing_string = ','.join(map(str, spacing))
 
     resampled = dict()
+    transforms = dict()
+
     _resample = mem.PipeFunc(albo.interfaces.medpy.MedpyResample,
                              config.get().cache_dir)
     _register = mem.PipeFunc(nipype.interfaces.fsl.FLIRT,
@@ -99,7 +104,8 @@ def resample(sequences, pixel_spacing, fixed_image_key):
                            cost_func='mutualinfo',
                            terminal_output='none')
         resampled[key] = result.outputs.out_file
-    return resampled
+        transforms[key] = result.outputs.out_matrix_file
+    return resampled, transforms
 
 
 def skullstrip(sequences, skullstrip_base_key):
@@ -211,12 +217,19 @@ def segment(sequences, mask, features, classifier_file):
 
     result = _apply_rdf(classifier_file=classifier_file,
                         feature_files=features, mask_file=mask)
-    return result.outputs.segmentation_image, result.outputs.probability_image
+    return result.outputs.segmentation_file, result.outputs.probability_file
 
 
-def register_to_standardbrain(segmentation_mask, standardbrain, floating):
+def register_to_standardbrain(segmentation_mask, standardbrain, floating,
+                              floating_transform):
     """Register the given segmentation to a standard brain."""
     log.info('Standardbrain registration...')
+    _invert_transformation = mem.PipeFunc(
+        albo.interfaces.utility.InvertTransformation,
+        config.get().cache_dir)
+    _apply_tranformation = mem.PipeFunc(
+        nipype.interfaces.fsl.ApplyXfm,
+        config.get().cache_dir)
     _register_affine = mem.PipeFunc(albo.interfaces.niftyreg.Aladin,
                                     config.get().cache_dir)
     _register_freeform = mem.PipeFunc(albo.interfaces.niftyreg.F3D,
@@ -224,6 +237,16 @@ def register_to_standardbrain(segmentation_mask, standardbrain, floating):
     _resample = mem.PipeFunc(albo.interfaces.niftyreg.Resample,
                              config.get().cache_dir)
 
+    # 1. transform lesion mask to original t1/t2 space
+    invert_result = _invert_transformation(in_file=floating_transform)
+    transformation_result = _apply_tranformation(
+        in_file=segmentation_mask,
+        in_matrix_file=invert_result.outputs.out_file,
+        reference=floating,
+        interp="nearestneighbour"
+    )
+
+    # 2. register t1/t2 to standardbrain
     affine_result = _register_affine(
         flo_image=floating, ref_image=standardbrain
     )
@@ -231,9 +254,11 @@ def register_to_standardbrain(segmentation_mask, standardbrain, floating):
         flo_image=floating, ref_image=standardbrain,
         in_affine=affine_result.outputs.affine
     )
-    resample_result = _resample(
-        flo_image=segmentation_mask, ref_image=standardbrain,
-        in_cpp=freeform_result.outputs.cpp_file, interpolation_order='0'
-    )
 
+    # 3. warp lesion mask to standardbrain
+    resample_result = _resample(
+        flo_image=transformation_result.outputs.out_file,
+        ref_image=standardbrain, in_cpp=freeform_result.outputs.cpp_file,
+        interpolation_order='0'
+    )
     return resample_result.outputs.result_file
