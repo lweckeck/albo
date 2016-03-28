@@ -18,7 +18,7 @@ import albo.interfaces.niftyreg
 log = logging.get_logger(__name__)
 
 
-def process_case(sequences, classifier, standardbrain_sequence,
+def segment_case(sequences, classifier, standardbrain_sequence,
                  standardbrain_path):
     """Run pipeline for given sequences."""
     # -- run preprocessing pipeline
@@ -45,6 +45,7 @@ def process_case(sequences, classifier, standardbrain_sequence,
         segmentation, standardbrain_path, sequences[standardbrain_sequence],
         transforms[standardbrain_sequence])
     output(standard_mask, 'standard_segmentation.nii')
+    return standard_mask
 
 
 def output(filepath, save_as=None, prefix='', postfix=''):

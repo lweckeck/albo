@@ -10,6 +10,7 @@ import albo.classifiers as clf
 import albo.log as logging
 import albo.config as config
 import albo.pipeline as ppl
+import albo.atlases as atl
 
 log = logging.get_logger(__name__)
 
@@ -46,8 +47,9 @@ def main(args):
         _select_standardbrain(relevant_sequences.viewkeys())
 
     # 4. execute pipeline
-    ppl.process_case(relevant_sequences, best_classifier,
-                     stdbrain_sequence, stdbrain_path)
+    mask = ppl.segment_case(relevant_sequences, best_classifier,
+                            stdbrain_sequence, stdbrain_path)
+    atl.calculate_atlas_overlaps(mask)
 
     # 5. move log file to output folder
     if os.path.isfile(logging.global_log_file):
