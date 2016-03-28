@@ -11,30 +11,29 @@ import albo.log as logging
 import albo.config as config
 import albo.pipeline as ppl
 
-
 log = logging.get_logger(__name__)
-
-SEQUENCE_FILE_EXT = '.nii.gz'
 
 
 def main(args):
     """Run pipeline."""
     logging.init(args.verbose, args.debug)
     logging.set_global_log_file(args.id + '_incomplete.log')
-    _setup_output_dir(args.output, args.id, args.force)
-    config.get().cache_dir = os.path.abspath(args.cache)
+    if args.cache:
+        config.get().cache_dir = os.path.abspath(args.cache)
+    if args.output:
+        config.get().output_dir = os.path.abspath(args.cache)
+    _setup_output_dir(args.id, args.force)
 
-    # determine best applicable classifier
+    # 1. determine best applicable classifier
     sequences = _parse_sequences(args.sequence)
-    stdbrain_sequence, stdbrain_path = _parse_standardbrain(args.standardbrain)
-    classifiers = clf.load_classifiers_from(args.classifier_dir)
+    classifiers = clf.load_classifiers_from(config.get().classifier_dir)
     best_classifier = clf.best_classifier(classifiers, sequences.keys())
     if best_classifier is None:
         log.error('No applicable classifier has been found for the given '
                   'sequences. Run "albo list" for all available classifiers.')
         sys.exit(1)
 
-    # remove sequences unused by the classifier
+    # 2. remove sequences unused by the classifier
     relevant_sequences = {key: sequence for key, sequence in sequences.items()
                           if key in best_classifier.sequences}
     if set(relevant_sequences.keys()) != set(sequences.keys()):
@@ -42,22 +41,28 @@ def main(args):
                     ' of available sequences!'
                     .format(relevant_sequences.keys()))
 
-    # setup configuration and execute pipeline steps
+    # 3. select standardbrain
+    stdbrain_sequence, stdbrain_path = \
+        _select_standardbrain(relevant_sequences.viewkeys())
+
+    # 4. execute pipeline
     ppl.process_case(relevant_sequences, best_classifier,
                      stdbrain_sequence, stdbrain_path)
 
-    # move log file to output folder
+    # 5. move log file to output folder
     if os.path.isfile(logging.global_log_file):
         shutil.move(logging.global_log_file,
-                    os.path.join(config.get().output_dir,
+                    os.path.join(config.get().case_output_dir,
                                  args.id + '_sucessful.log'))
     log.info('Done.')
     sys.exit()
 
 
-def _setup_output_dir(dir, case_id, overwrite):
-    output_path = os.path.join(os.path.abspath(dir), case_id)
-    if os.path.isdir(output_path) and os.listdir(output_path) != []:
+def _setup_output_dir(case_id, overwrite):
+    output_path = os.path.join(config.get().output_dir, case_id)
+    if not os.path.isdir(output_path):
+        os.mkdir(output_path)
+    elif os.path.isdir(output_path) and os.listdir(output_path) != []:
         if overwrite:
             shutil.rmtree(output_path)
             os.mkdir(output_path)
@@ -65,7 +70,7 @@ def _setup_output_dir(dir, case_id, overwrite):
             log.error('There already is an output directory for the given ID.'
                       ' Use --force/-f to override.')
             sys.exit(1)
-    config.get().output_dir = output_path
+    config.get().case_output_dir = output_path
 
 
 def _parse_sequences(id_sequence_mappings):
@@ -80,12 +85,29 @@ def _parse_sequences(id_sequence_mappings):
     return sequences
 
 
-def _parse_standardbrain(id_path_mapping):
-    identifier, path = id_path_mapping.split(':')
-    if not os.path.isfile(path):
-        log.error('The path {} given for the standardbrain is not a file.'
-                  .format(path))
-    return identifier, path
+def _select_standardbrain(sequence_keys):
+    sequence_keys = list(sequence_keys)
+    ids = ['t1', 't2']
+    path = config.get().standardbrain_dir
+
+    # list files in standardbrain directory and match to sequence ids
+    files = [name for name in os.listdir(path)
+             if os.path.isfile(os.path.join(path, name))]
+
+    standardbrains = dict()
+    for id in ids:
+        for f in files:
+            if id in f.lower():
+                standardbrains[id] = os.path.join(path, f)
+
+    # return the first sequence and standardbrain matching one of the ids
+    for id in ids:
+        for index, key in enumerate(map(str.lower, sequence_keys)):
+            if id in key:
+                return sequence_keys[index], standardbrains[id]
+    log.error('No standardbrain found for sequences {}. One of the sequences'
+              ' {} must be present!'.format(sequence_keys, ", ".join(ids)))
+    sys.exit(1)
 
 
 def add_arguments_to(parser):
@@ -96,14 +118,6 @@ def add_arguments_to(parser):
     parser.add_argument('--id', '-i', type=str, required=True,
                         help='use given string as case identifier, e.g. for'
                         ' naming the ouput folder')
-    parser.add_argument('--config', '-c', type=str,
-                        help='pipeline configuration file '
-                        '(default: ~/.config/albo/albo.conf')
-    parser.add_argument('--classifier_dir', '-d', type=str,
-                        help='path to the directory to search for classifiers')
-    parser.add_argument('--standardbrain', '-s', type=str, metavar='SEQID:PATH',
-                        help='use given standardbrain, given as <sequence_id>:'
-                        '<path>, as reference image for registration.')
     parser.add_argument('--cache', type=str,
                         help='path to caching directory')
     parser.add_argument('--output', '-o', type=str,

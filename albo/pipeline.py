@@ -60,7 +60,7 @@ def output(filepath, save_as=None, prefix='', postfix=''):
     components[0] += postfix
     filename = prefix + '.'.join(components)
 
-    out_path = os.path.join(config.get().output_dir, filename)
+    out_path = os.path.join(config.get().case_output_dir, filename)
     if os.path.isfile(out_path):
         os.remove(out_path)
     shutil.copy2(filepath, out_path)
