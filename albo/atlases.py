@@ -41,6 +41,9 @@ def calculate_atlas_overlaps(mask):
 
     for atlas_file in atlas_files:
         atlas, atlas_header = mio.load(atlas_file)
+        # if dimensions of mask (standardbrain) and atlas do not match, skip
+        if atlas.shape != mask.shape:
+            continue
         atlas_masked = atlas.copy()
         atlas_masked[~(mask.astype(numpy.bool))] = 0
 

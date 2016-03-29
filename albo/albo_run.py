@@ -89,7 +89,7 @@ def _parse_sequences(id_sequence_mappings):
 
 def _select_standardbrain(sequence_keys):
     sequence_keys = list(sequence_keys)
-    ids = ['t1', 't2']
+    ids = ['t1', 't2', 'flair']
     path = config.get().standardbrain_dir
 
     # list files in standardbrain directory and match to sequence ids
