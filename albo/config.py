@@ -38,6 +38,7 @@ class _Config(object):
     def __init__(self):
         """Initialize config object from default config file."""
         if not os.path.isfile(DEFAULT_CONFIG_PATH):
+            os.makedirs(os.path.dirname(DEFAULT_CONFIG_PATH))
             with open(DEFAULT_CONFIG_PATH, 'w') as f:
                 f.write(DEFAULT_CONFIG)
         parser = ConfigParser.ConfigParser()
