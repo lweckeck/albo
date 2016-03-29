@@ -17,5 +17,10 @@ def main():
     list_parser.set_defaults(func=list.main)
     list.add_arguments_to(list_parser)
 
+    import albo.albo_update as update
+    update_parser = subparsers.add_parser('update')
+    update_parser.set_defaults(func=update.main)
+    update.add_arguments_to(update_parser)
+
     args = parser.parse_args()
     args.func(args)
