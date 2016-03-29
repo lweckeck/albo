@@ -73,6 +73,7 @@ def output(filepath, save_as=None, prefix='', postfix=''):
     filename = prefix + '.'.join(components)
 
     out_path = os.path.join(config.get().case_output_dir, filename)
+    os.makedirs(config.get().case_output_dir)
     if os.path.isfile(out_path):
         os.remove(out_path)
     shutil.copy2(filepath, out_path)

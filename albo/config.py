@@ -25,6 +25,19 @@ def expand_path(path):
     return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
 
+def check_dir(dir, name):
+    """Check if directory exists, if not, try to create it."""
+    if dir == '':
+        log.error('Path for {} not set. Please update configuration file'
+                  ' ({})'.format(name, DEFAULT_CONFIG_PATH))
+        sys.exit(1)
+    dir = expand_path(dir)
+    if not os.path.isdir(dir):
+        log.warn("{} directory {} does not yet exist!"
+                 .format(name.capitalize(), dir))
+    return dir
+
+
 class _Config(object):
     cache_dir = ''
     output_dir = ''
@@ -44,56 +57,17 @@ class _Config(object):
         parser = ConfigParser.ConfigParser()
         parser.read(DEFAULT_CONFIG_PATH)
 
-        self.cache_dir = expand_path(parser.get('global', 'cache_dir'))
-        if not os.path.isdir(self.cache_dir):
-            try:
-                os.makedirs(self.cache_dir)
-            except OSError as e:
-                log.error("Error creating cache directory {}: {}"
-                          .format(self.cache_dir, e.message))
-                sys.exit(1)
-
-        self.output_dir = expand_path(parser.get('global', 'output_dir'))
-        if not os.path.isdir(self.output_dir):
-            try:
-                os.makedirs(self.output_dir)
-            except OSError as e:
-                log.error("Error creating output directoy {}: {}"
-                          .format(self.output_dir, e.message))
-                sys.exit(1)
-
+        self.cache_dir = check_dir(parser.get('global', 'cache_dir'), 'cache')
+        self.output_dir = check_dir(
+            parser.get('global', 'output_dir'), 'output')
         self.case_output_dir = self.output_dir
 
-        self.classifier_dir = expand_path(
-            parser.get('global', 'classifier_dir'))
-        if self.classifier_dir == '':
-            log.error("Please set classifier directory in config file! "
-                      "({})".format(DEFAULT_CONFIG_PATH))
-            sys.exit(1)
-        if not os.path.isdir(self.classifier_dir):
-            log.error("Classifier directory {} does not exist!"
-                      .format(self.classifier_dir))
-
-        self.standardbrain_dir = expand_path(
-            parser.get('global', 'standardbrain_dir'))
-        if self.standardbrain_dir == '':
-            log.error("Please set standardbrain directory in config file! "
-                      "({})".format(DEFAULT_CONFIG_PATH))
-            sys.exit(1)
-        if not os.path.isdir(self.standardbrain_dir):
-            log.error("Standardbrain directory {} does not exist!"
-                      .format(self.standardbrain_dir))
-
-        self.atlas_dir = expand_path(
-            parser.get('global', 'atlas_dir'))
-        if self.atlas_dir == '':
-            log.error("Please set atlas directory in config file! "
-                      "({})".format(DEFAULT_CONFIG_PATH))
-            sys.exit(1)
-        if not os.path.isdir(self.atlas_dir):
-            log.error("Atlas directory {} does not exist!"
-                      .format(self.atlas_dir))
-
+        self.classifier_dir = check_dir(
+            parser.get('global', 'classifier_dir'), 'classifier')
+        self.standardbrain_dir = check_dir(
+            parser.get('global', 'standardbrain_dir'), 'standardbrain')
+        self.atlas_dir = check_dir(
+            parser.get('global', 'atlas_dir'), 'atlas')
 
 _config = _Config()
 
