@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 """Script to list all available classifiers."""
 
-import os
 import sys
 import argparse
 
+import albo.config as config
 import albo.classifiers as clf
 
 
 def main(args):
     """List classifiers."""
-    print "Directory: {}".format(os.path.abspath(args.classifier_dir))
-    classifiers = clf.load_classifiers_from(args.classifier_dir)
+    classifier_dir = config.get().classifier_dir
+    print "Directory: {}".format(classifier_dir)
+    classifiers = clf.load_classifiers_from(classifier_dir)
     if len(classifiers) == 0:
         print "No classifiers found."
         sys.exit(0)
