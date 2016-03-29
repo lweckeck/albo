@@ -63,7 +63,7 @@ def main(args):
 def _setup_output_dir(case_id, overwrite):
     output_path = os.path.join(config.get().output_dir, case_id)
     if not os.path.isdir(output_path):
-        os.mkdir(output_path)
+        os.makedirs(output_path)
     elif os.path.isdir(output_path) and os.listdir(output_path) != []:
         if overwrite:
             shutil.rmtree(output_path)
