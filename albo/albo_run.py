@@ -23,7 +23,6 @@ def main(args):
         config.get().cache_dir = os.path.abspath(args.cache)
     if args.output:
         config.get().output_dir = os.path.abspath(args.cache)
-    _setup_output_dir(args.id, args.force)
 
     # 1. determine best applicable classifier
     sequences = _parse_sequences(args.sequence)
@@ -47,6 +46,7 @@ def main(args):
         _select_standardbrain(relevant_sequences.viewkeys())
 
     # 4. execute pipeline
+    _setup_output_dir(args.id, args.force)
     mask = ppl.segment_case(
         relevant_sequences, best_classifier, stdbrain_sequence, stdbrain_path,
         args.skullstripped)
@@ -79,7 +79,12 @@ def _setup_output_dir(case_id, overwrite):
 def _parse_sequences(id_sequence_mappings):
     sequences = dict()
     for s in id_sequence_mappings:
-        identifier, path = s.split(':')
+        try:
+            identifier, path = s.split(':')
+        except ValueError:
+            log.error('Error parsing argument "{}". Input files must be passed'
+                      ' as <sequence_id>:<path/to/file>.'.format(s))
+            sys.exit(1)
         if not os.path.isfile(path):
             log.error('The path {} given for sequence {} is not a file.'
                       .format(path, identifier))
