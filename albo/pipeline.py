@@ -48,11 +48,8 @@ def segment_case(sequences, classifier, standardbrain_sequence,
     tokens = standardbrain_path.split('.')
     tokens[0] += '_mask'
     standardbrain_mask_path = '.'.join(tokens)
-    print standardbrain_mask_path
     if (not skullstripped) or (not os.path.isfile(standardbrain_mask_path)):
         standardbrain_mask_path = None
-    print skullstripped
-    print standardbrain_mask_path
 
     if standardbrain_sequence == classifier.registration_base:
         _, header = mio.load(sequences[standardbrain_sequence])
