@@ -6,6 +6,9 @@ import collections
 
 import medpy.io as mio
 import albo.config as config
+import albo.log as logging
+
+log = logging.get_logger(__name__)
 
 
 def _get_atlas_files():
@@ -43,6 +46,8 @@ def calculate_atlas_overlaps(mask):
         atlas, atlas_header = mio.load(atlas_file)
         # if dimensions of mask (standardbrain) and atlas do not match, skip
         if atlas.shape != mask.shape:
+            log.warning('Atlas {} will be skipped due to mismatching pixel'
+                        ' spacing.'.format(os.path.basename(atlas_file)))
             continue
         overlap = atlas[mask.astype(numpy.bool)]
 
