@@ -47,8 +47,9 @@ def main(args):
         _select_standardbrain(relevant_sequences.viewkeys())
 
     # 4. execute pipeline
-    mask = ppl.segment_case(relevant_sequences, best_classifier,
-                            stdbrain_sequence, stdbrain_path)
+    mask = ppl.segment_case(
+        relevant_sequences, best_classifier, stdbrain_sequence, stdbrain_path,
+        args.skullstripped)
     atl.calculate_atlas_overlaps(mask)
 
     # 5. move log file to output folder
@@ -94,7 +95,8 @@ def _select_standardbrain(sequence_keys):
 
     # list files in standardbrain directory and match to sequence ids
     files = [name for name in os.listdir(path)
-             if os.path.isfile(os.path.join(path, name))]
+             if os.path.isfile(os.path.join(path, name))
+             if 'mask' not in name]
 
     standardbrains = dict()
     for id in ids:
@@ -120,6 +122,10 @@ def add_arguments_to(parser):
     parser.add_argument('--id', '-i', type=str, required=True,
                         help='use given string as case identifier, e.g. for'
                         ' naming the ouput folder')
+    parser.add_argument('--skullstripped', action='store_true', help='if flag'
+                        ' is set skullstripping will be skipped during'
+                        ' preprocessing  and a brainmask will be used for'
+                        ' standardbrain registration, if possible.')
     parser.add_argument('--cache', type=str,
                         help='path to caching directory')
     parser.add_argument('--output', '-o', type=str,

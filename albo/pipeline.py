@@ -20,14 +20,17 @@ log = logging.get_logger(__name__)
 
 
 def segment_case(sequences, classifier, standardbrain_sequence,
-                 standardbrain_path):
+                 standardbrain_path, skullstripped=False):
     """Run pipeline for given sequences."""
     # -- run preprocessing pipeline
     resampled, transforms = resample(
         sequences, classifier.pixel_spacing, classifier.registration_base)
-    skullstripped, brainmask = skullstrip(
+    # if not skullstripped:
+    skullstripped_sequences, brainmask = skullstrip(
         resampled, classifier.skullstripping_base)
-    bfced = correct_biasfield(skullstripped, brainmask)
+    # else:
+    #    skullstripped_sequences = resampled
+    bfced = correct_biasfield(skullstripped_sequences, brainmask)
     preprocessed = standardize_intensityrange(
             bfced, brainmask, classifier.intensity_models)
     for key in preprocessed:
@@ -42,6 +45,15 @@ def segment_case(sequences, classifier, standardbrain_sequence,
     output(probability, 'probability.nii.gz')
 
     # -- register lesion mask to standardbrain
+    tokens = standardbrain_path.split('.')
+    tokens[0] += '_mask'
+    standardbrain_mask_path = '.'.join(tokens)
+    print standardbrain_mask_path
+    if (not skullstripped) or (not os.path.isfile(standardbrain_mask_path)):
+        standardbrain_mask_path = None
+    print skullstripped
+    print standardbrain_mask_path
+
     if standardbrain_sequence == classifier.registration_base:
         _, header = mio.load(sequences[standardbrain_sequence])
         original_dims = mio.get_pixel_spacing(header)
@@ -49,11 +61,13 @@ def segment_case(sequences, classifier, standardbrain_sequence,
         standard_mask = register_to_standardbrain(
             segmentation, standardbrain_path,
             sequences[standardbrain_sequence],
+            standardbrain_mask=standardbrain_mask_path,
             auxilliary_original_spacing=spacing)
     else:
         standard_mask = register_to_standardbrain(
             segmentation, standardbrain_path,
             sequences[standardbrain_sequence],
+            standardbrain_mask=standardbrain_mask_path,
             auxilliary_transform=transforms[standardbrain_sequence])
     output(standard_mask, 'standard_segmentation.nii')
     return standard_mask
@@ -237,7 +251,8 @@ def segment(sequences, mask, features, classifier_file):
 
 def register_to_standardbrain(
         segmentation_mask, standardbrain, auxilliary_image,
-        auxilliary_transform=None, auxilliary_original_spacing=None):
+        standardbrain_mask=None, auxilliary_transform=None,
+        auxilliary_original_spacing=None):
     """Register the given segmentation to a standard brain."""
     log.info('Standardbrain registration...')
 
@@ -270,14 +285,26 @@ def register_to_standardbrain(
                                       config.get().cache_dir)
     _resample = mem.PipeFunc(albo.interfaces.niftyreg.Resample,
                              config.get().cache_dir)
+
     # 2. register t1/t2/flair to standardbrain
-    affine_result = _register_affine(
-        flo_image=auxilliary_image, ref_image=standardbrain
-    )
-    freeform_result = _register_freeform(
-        flo_image=auxilliary_image, ref_image=standardbrain,
-        in_affine=affine_result.outputs.affine
-    )
+    if standardbrain_mask is not None:
+        affine_result = _register_affine(
+            flo_image=auxilliary_image, ref_image=standardbrain,
+            rmask_file=standardbrain_mask
+        )
+        freeform_result = _register_freeform(
+            flo_image=auxilliary_image, ref_image=standardbrain,
+            in_affine=affine_result.outputs.affine,
+            rmask_file=standardbrain_mask
+        )
+    else:
+        affine_result = _register_affine(
+            flo_image=auxilliary_image, ref_image=standardbrain
+        )
+        freeform_result = _register_freeform(
+            flo_image=auxilliary_image, ref_image=standardbrain,
+            in_affine=affine_result.outputs.affine
+        )
 
     # 3. warp lesion mask to standardbrain
     resample_result = _resample(
