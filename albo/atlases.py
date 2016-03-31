@@ -44,11 +44,10 @@ def calculate_atlas_overlaps(mask):
         # if dimensions of mask (standardbrain) and atlas do not match, skip
         if atlas.shape != mask.shape:
             continue
-        atlas_masked = atlas.copy()
-        atlas_masked[~(mask.astype(numpy.bool))] = 0
+        overlap = atlas[mask.astype(numpy.bool)]
 
         region_sizes = numpy.bincount(atlas.ravel())
-        overlaps = numpy.bincount(atlas_masked.ravel())
+        overlap_region_sizes = numpy.bincount(overlap.ravel())
 
         atlas_name = os.path.basename(atlas_file).split('.')[0]
         region_names = _get_region_name_map(atlas_name)
@@ -57,7 +56,7 @@ def calculate_atlas_overlaps(mask):
         w = csv.writer(open(out_csv_path, 'w'))
         w.writerow(
             ['value', 'id', 'voxel overlap', 'mL overlap', 'percent overlap'])
-        for index, number in enumerate(overlaps):
+        for index, number in enumerate(overlap_region_sizes):
             if number != 0:
                 w.writerow([index,
                             region_names[index],
