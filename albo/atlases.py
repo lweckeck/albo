@@ -62,5 +62,5 @@ def calculate_atlas_overlaps(mask):
                 w.writerow([index,
                             region_names[index],
                             number,
-                            number * pixel_volume,
+                            (number * pixel_volume) / 1000,
                             float(number) / region_sizes[index]])
