@@ -7,6 +7,8 @@ import albo.log as logging
 
 log = logging.get_logger(__name__)
 
+_config = None
+
 DEFAULT_CONFIG_PATH = os.path.expanduser('~/.config/albo/albo.conf')
 DEFAULT_CONFIG = """
 [global]
