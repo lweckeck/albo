@@ -69,8 +69,6 @@ class _Config(object):
         self.atlas_dir = check_dir(
             parser.get('global', 'atlas_dir'), 'atlas')
 
-_config = _Config()
-
 
 def get():
     """Return the global Config object."""
