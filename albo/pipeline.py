@@ -124,11 +124,16 @@ def resample(sequences, pixel_spacing, fixed_image_key):
     resampled[fixed_image_key] = fixed_image
 
     for key in (sequences.viewkeys() - {fixed_image_key}):
-        result = _register(in_file=sequences[key],
-                           reference=fixed_image,
-                           cost='mutualinfo',
-                           cost_func='mutualinfo',
-                           terminal_output='none')
+        try:
+            result = _register(in_file=sequences[key],
+                               reference=fixed_image,
+                               cost='mutualinfo',
+                               cost_func='mutualinfo',
+                               terminal_output='none')
+        except IOError as e:
+            log.error('IOError: {}\n\tTry sourcing /etc/fsl/5.0/fsl.h in your'
+                      ' .bashrc file (see "man fsl").'.format(e.message))
+            sys.exit(1)
         resampled[key] = result.outputs.out_file
         transforms[key] = result.outputs.out_matrix_file
     return resampled, transforms
@@ -141,8 +146,13 @@ def skullstrip(sequences, skullstrip_base_key):
         raise ValueError('The configured skullstripping base sequence {} is'
                          ' not availabe in the current case: {}'
                          .format(skullstrip_base_key, sequences.keys()))
-    _skullstrip = mem.PipeFunc(nipype.interfaces.fsl.BET,
-                               config.get().cache_dir)
+    try:
+        _skullstrip = mem.PipeFunc(nipype.interfaces.fsl.BET,
+                                   config.get().cache_dir)
+    except IOError as e:
+        log.error('IOError: {}\n\tTry sourcing /etc/fsl/5.0/fsl.h in your'
+                  ' .bashrc file (see "man fsl").'.format(e.message))
+        sys.exit(1)
     _apply_mask = mem.PipeFunc(albo.interfaces.utility.ApplyMask,
                                config.get().cache_dir)
 
