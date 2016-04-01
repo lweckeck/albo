@@ -2,7 +2,7 @@
 
 import ez_setup
 ez_setup.use_setuptools()
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='Albo',
@@ -19,9 +19,8 @@ setup(
         'nipype>=0.11.0',
         'numpy>=1.6.1',
         'scipy>=0.9',
-        'scikit-learn>=0.16.1',
+        'scikit-learn>=0.16.*',
     ],
-    package_data={'albo': ['config/*']},
 
     author='Lennart Weckeck',
     author_email='lennart.weckeck@student.uni-luebeck.de',
