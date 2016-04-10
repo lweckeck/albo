@@ -18,9 +18,13 @@ def main(args):
         sys.exit(0)
     names = [c.name for c in classifiers]
     seqs = [", ".join(c.sequences) for c in classifiers]
+    issues = [', '.join(clf.check_consistency(c)) for c in classifiers]
     longest_name = max(names, key=len)
-    for name, seq in [("Classifier:", "Sequences:")] + zip(names, seqs):
+    for name, seq, issue in \
+            [("Classifier:", "Sequences:", "")] + zip(names, seqs, issues):
         print "{} {}".format(name.ljust(len(longest_name)), seq)
+        if len(issue) > 0:
+            print "\tDetected issues: " + issue
 
 
 def add_arguments_to(parser):

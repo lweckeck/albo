@@ -32,6 +32,10 @@ def main(args):
         log.error('No applicable classifier has been found for the given '
                   'sequences. Run "albo list" for all available classifiers.')
         sys.exit(1)
+    issues = clf.check_consistency(best_classifier)
+    if len(issues) > 0:
+        log.error('Classifier is inconsistent: {}'.format(', '.join(issues)))
+        sys.exit(1)
 
     # 2. remove sequences unused by the classifier
     relevant_sequences = {key: sequence for key, sequence in sequences.items()

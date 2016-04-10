@@ -38,6 +38,36 @@ def best_classifier(classifiers, sequences):
                    key=lambda x: len(set(x.sequences) & set(sequences)))
 
 
+def check_consistency(c):
+    """Check consistency of given classifier and return a list of issues."""
+    if not isinstance(c, Classifier):
+        return ['object is not an instance of Classifier']
+    issues = list()
+    # sequence consistency
+    if c.registration_base not in c.sequences:
+        issues += ['registration base {} is not among the classifier '
+                   ' sequences {}'.format(c.registration_base, c.sequences)]
+    if c.skullstripping_base not in c.sequences:
+        issues += ['skullstripping base {} is not among the classifier '
+                   ' sequences {}'.format(c.skullstripping_base, c.sequences)]
+    # pixel spacing consistency
+    if len(c.pixel_spacing) != 3:
+        issues += ['invalid pixel spacing dimension']
+    for value in c.pixel_spacing:
+        try:
+            float(value)
+        except ValueError as e:
+            issues += ['invalid value in pixel spacing: ' + e.message]
+    # path consistency
+    for key in c.intensity_models:
+        path = c.intensity_models[key]
+        if not os.path.isfile(path):
+            issues += ['{} intensity model not found at {}'.format(key, path)]
+    if not os.path.isfile(c.classifier_file):
+        issues += ['classifier file not found at {}'.format(c.classifier_file)]
+    return issues
+
+
 class Classifier(object):
     """Represents a classifier with associated preprocessing information."""
 
