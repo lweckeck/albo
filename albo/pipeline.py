@@ -22,17 +22,24 @@ log = logging.get_logger(__name__)
 def segment_case(sequences, classifier, standardbrain_sequence,
                  standardbrain_path, skullstripped=False):
     """Run pipeline for given sequences."""
+    log.debug(str(sequences))
     # -- run preprocessing pipeline
     resampled, transforms = resample(
         sequences, classifier.pixel_spacing, classifier.registration_base)
+    log.debug(str(resampled))
     # if not skullstripped:
     skullstripped_sequences, brainmask = skullstrip(
         resampled, classifier.skullstripping_base)
+    log.debug(str(skullstripped_sequences))
     # else:
     #    skullstripped_sequences = resampled
     bfced = correct_biasfield(skullstripped_sequences, brainmask)
+    log.debug(str(bfced))
+
     preprocessed = standardize_intensityrange(
             bfced, brainmask, classifier.intensity_models)
+    log.debug(str(preprocessed))
+
     for key in preprocessed:
         output(preprocessed[key])
     output(brainmask, 'brainmask.nii.gz')
@@ -223,6 +230,10 @@ def standardize_intensityrange(sequences, mask, intensity_models):
                             "information. Please re-train intensity models."
                             .format(sequences[key]))
                         sys.exit(1)
+                    else:
+                        raise re2
+            else:
+                raise re
         result_co = _condense_outliers(
             in_file=result_irs.outputs.out_file)
         result[key] = result_co.outputs.out_file
