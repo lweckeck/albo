@@ -31,6 +31,8 @@ def _get_region_name_map(atlas_name):
                 mapping[int(row[0])] = row[1]
             except ValueError:
                 pass
+            except IndexError:
+                pass
     return mapping
 
 
@@ -39,15 +41,19 @@ def calculate_atlas_overlaps(mask):
     atlas_files = _get_atlas_files()
     mask, mask_header = mio.load(mask)
 
-    xdim, ydim, zdim = mio.get_pixel_spacing(mask_header)
-    pixel_volume = xdim * ydim * zdim
+    mask_spacing = mio.get_pixel_spacing(mask_header)
+    pixel_volume = mask_spacing[0] * mask_spacing[1] * mask_spacing[2]
 
     for atlas_file in atlas_files:
         atlas, atlas_header = mio.load(atlas_file)
         # if dimensions of mask (standardbrain) and atlas do not match, skip
-        if atlas.shape != mask.shape:
+        # if atlas.shape != mask.shape:
+        atlas_spacing = mio.get_pixel_spacing(atlas_header)
+        if mask_spacing != atlas_spacing:
             log.warning('Atlas {} will be skipped due to mismatching pixel'
-                        ' spacing.'.format(os.path.basename(atlas_file)))
+                        ' spacing (atlas: {}, segmentation: {})'
+                        .format(os.path.basename(atlas_file), atlas_spacing,
+                                mask_spacing))
             continue
         overlap = atlas[mask.astype(numpy.bool)]
 
