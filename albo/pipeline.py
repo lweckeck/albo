@@ -232,6 +232,11 @@ def standardize_intensityrange(sequences, mask, intensity_models):
                         sys.exit(1)
                     else:
                         raise re2
+            elif "SingleIntensityAccumulationError" in re.message:
+                log.error("An error occured while transforming the image {}"
+                          " to learned standard intensity space: {}"
+                          .format(sequences[key], re.message))
+                sys.exit(1)
             else:
                 raise re
         result_co = _condense_outliers(
