@@ -8,8 +8,6 @@ import logging
 import nipype
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-import nipype
-
 loggers = []
 
 formatter = logging.Formatter(
