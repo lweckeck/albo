@@ -50,7 +50,7 @@ class _Config(object):
 
     options = dict()
 
-    def __init__(self):
+    def __init__(self, cache_dir=None, output_dir=None):
         """Initialize config object from default config file."""
         if not os.path.isfile(DEFAULT_CONFIG_PATH):
             os.makedirs(os.path.dirname(DEFAULT_CONFIG_PATH))
@@ -59,9 +59,13 @@ class _Config(object):
         parser = ConfigParser.ConfigParser()
         parser.read(DEFAULT_CONFIG_PATH)
 
-        self.cache_dir = check_dir(parser.get('global', 'cache_dir'), 'cache')
-        self.output_dir = check_dir(
-            parser.get('global', 'output_dir'), 'output')
+        if cache_dir is None:
+            cache_dir = parser.get('global', 'cache_dir')
+        self.cache_dir = check_dir(cache_dir, 'cache')
+
+        if output_dir is None:
+            output_dir = parser.get('global', 'output_dir')
+        self.output_dir = check_dir(output_dir, 'output')
         self.case_output_dir = self.output_dir
 
         self.classifier_dir = check_dir(
@@ -77,4 +81,11 @@ def get():
     global _config
     if _config is None:
         _config = _Config()
+    return _config
+
+
+def init(cache_dir, output_dir):
+    """Initialize and return the global Config object."""
+    global _config
+    _config = _Config(cache_dir, output_dir)
     return _config

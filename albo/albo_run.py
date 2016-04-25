@@ -19,10 +19,7 @@ def main(args):
     """Run pipeline."""
     logging.init(args.verbose, args.debug)
     logging.set_global_log_file(args.id + '_incomplete.log')
-    if args.cache:
-        config.get().cache_dir = os.path.abspath(args.cache)
-    if args.output:
-        config.get().output_dir = os.path.abspath(args.cache)
+    config.init(args.cache, args.output)
 
     # 1. determine best applicable classifier
     sequences = _parse_sequences(args.sequence)
