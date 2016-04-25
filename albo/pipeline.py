@@ -208,6 +208,7 @@ def standardize_intensityrange(sequences, mask, intensity_models):
         config.get().cache_dir)
     result = dict()
     for key in sequences:
+        previouscwd = os.getcwd()
         try:
             result_irs = _irs(in_file=sequences[key], out_dir='.',
                               mask_file=mask, lmodel=intensity_models[key])
@@ -239,6 +240,8 @@ def standardize_intensityrange(sequences, mask, intensity_models):
                 sys.exit(1)
             else:
                 raise re
+        finally:
+            os.chdir(previouscwd)
         result_co = _condense_outliers(
             in_file=result_irs.outputs.out_file)
         result[key] = result_co.outputs.out_file
