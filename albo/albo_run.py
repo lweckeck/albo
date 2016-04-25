@@ -18,8 +18,12 @@ log = logging.get_logger(__name__)
 def main(args):
     """Run pipeline."""
     logging.init(args.verbose, args.debug)
-    logging.set_global_log_file(args.id + '_incomplete.log')
+
     config.init(args.cache, args.output)
+    _setup_output_dir(args.id, args.force)
+
+    logging.set_global_log_file(os.path.join(config.get().case_output_dir,
+                                args.id + '_incomplete.log'))
 
     # 1. determine best applicable classifier
     sequences = _parse_sequences(args.sequence)
@@ -47,17 +51,17 @@ def main(args):
         _select_standardbrain(relevant_sequences.viewkeys())
 
     # 4. execute pipeline
-    _setup_output_dir(args.id, args.force)
     mask = ppl.segment_case(
         relevant_sequences, best_classifier, stdbrain_sequence, stdbrain_path,
         args.skullstripped)
     atl.calculate_atlas_overlaps(mask)
 
-    # 5. move log file to output folder
+    # 5. rename log file in output folder
     if os.path.isfile(logging.global_log_file):
         shutil.move(logging.global_log_file,
                     os.path.join(config.get().case_output_dir,
                                  args.id + '_sucessful.log'))
+
     log.info('Done.')
     sys.exit()
 
